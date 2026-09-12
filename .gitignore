@@ -1,0 +1,7 @@
+.venv/
+.idea/
+__pycache__/
+*.pyc
+synthetic_data/output/*
+!.gitignore
+.DS_Store
