@@ -14,6 +14,8 @@ from src.fintech_agent.observability.phoenix_tracer import PhoenixObservability
 from src.fintech_agent.runtime.budgets import ExecutionBudget
 from src.fintech_agent.runtime.redis_store import RedisStore
 from src.fintech_agent.runtime.singleflight import SingleFlight
+from src.fintech_agent.evaluation.evaluator import calculate_vcs, export_finetuning_row
+
 
 # Shared runtime singletons
 _coordinator = SingleFlight()
@@ -74,15 +76,22 @@ async def run_credit_audit(
         findings = final_state.get("findings", [])
         claims = final_state.get("report_claims", [])
 
+        # Calculate dynamic Verification Citation Score (VCS)
+        actual_vcs = calculate_vcs(final_state)
+
         # Record evaluation metrics to Phoenix OpenTelemetry trace
         _phoenix.record_audit_evaluation(
             case_id=case_id,
             run_id=run_id,
-            vcs_score=1.0000,
+            vcs_score=actual_vcs,
             review_required=review_required,
             cost_usd=round(budget.cost_usd, 4),
             findings_count=len(findings),
         )
+
+        # Extract graph trace to JSONL for future fine-tuning
+        if actual_vcs >= 1.0:
+            export_finetuning_row(final_state)
 
         summary_record = {
             "case_id": case_id,
@@ -91,6 +100,7 @@ async def run_credit_audit(
             "review_required": review_required,
             "findings_count": len(findings),
             "claims_count": len(claims),
+            "vcs_score": actual_vcs,
             "elapsed_seconds": round(elapsed, 4),
             "cost_usd": round(budget.cost_usd, 4),
             "tokens_consumed": budget.generated_tokens,
