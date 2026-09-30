@@ -30,6 +30,17 @@ services:
       retries: 5
     restart: unless-stopped
 
+  phoenix:
+    image: arizephoenix/phoenix:latest
+    container_name: covenantproof-phoenix
+    ports:
+      - "6006:6006"
+      - "4317:4317"
+    environment:
+      - PHOENIX_PORT=6006
+      - PHOENIX_HOST=0.0.0.0
+    restart: unless-stopped
+
   api:
     build:
       context: .

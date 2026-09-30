@@ -6,13 +6,92 @@ from pathlib import Path
 from typing import Any
 
 from src.fintech_agent.agents.state import AgentState
+from src.fintech_agent.llm.bedrock_client import BedrockAgentLLM
 from src.fintech_agent.reconciliation.calculations import calculate_dscr
 from src.fintech_agent.reconciliation.matching import match_three_way
 from synthetic_data.generators.docling_parser import parse_pdf_document
 from synthetic_data.generators.spatial_extractor import extract_spatial_spans
-from src.fintech_agent.llm.bedrock_client import BedrockAgentLLM
 
+# Singleton Bedrock reasoning client (auto-instrumented for Arize Phoenix traces)
 _bedrock_llm = BedrockAgentLLM()
+
+
+def _compute_sha256(file_path: Path) -> str:
+    """Computes SHA-256 checksum across document raw bytes."""
+    hasher = hashlib.sha256()
+    with open(file_path, "rb") as f:
+        while chunk := f.read(65536):
+            hasher.update(chunk)
+    return hasher.hexdigest()
+
+
+def ingestion_node(state: AgentState) -> dict[str, Any]:
+    """
+    Ingestion Parser Node:
+    Resolves document artifacts, calculates immutable SHA-256 byte hashes,
+    parses layout hierarchies via Docling, and maps spatial evidence spans.
+    """
+    docs = state.get("input_documents", [])
+    output_dir = Path("synthetic_data/output")
+
+    document_hashes: list[str] = []
+    parsed_pages: list[dict[str, Any]] = []
+    evidence_spans: list[dict[str, Any]] = []
+    warnings: list[str] = []
+
+    for idx, doc in enumerate(docs):
+        file_name = doc.get("file_name") or f"{doc.get('document_type', f'doc_{idx}')}.pdf"
+        target_path = Path(doc.get("file_path", output_dir / file_name))
+
+        if not target_path.exists():
+            warnings.append(f"Document file not found at {target_path}; utilizing metadata hash.")
+            doc_hash = doc.get("sha256", f"unhashed-doc-{idx}")
+            document_hashes.append(doc_hash)
+            continue
+
+        # 1. Cryptographic Hash Pinning
+        doc_hash = _compute_sha256(target_path)
+        document_hashes.append(doc_hash)
+
+        # 2. Structural Markdown Parsing via Docling
+        try:
+            parsed = parse_pdf_document(target_path)
+            parsed_pages.append({
+                "document_id": doc.get("document_id", f"doc-{idx}"),
+                "document_type": doc.get("document_type", "UNKNOWN"),
+                "file_name": target_path.name,
+                "sha256": doc_hash,
+                "markdown": parsed["markdown"],
+            })
+        except Exception as e:
+            warnings.append(f"Docling parse error on {target_path.name}: {str(e)}")
+
+        # 3. Spatial Bounding Box Extraction
+        try:
+            spans = extract_spatial_spans(target_path)
+            for s in spans:
+                evidence_spans.append({
+                    "id": f"span-{doc_hash[:8]}-{s['block_id']}",
+                    "document_version_id": f"ver-{doc_hash[:8]}",
+                    "source_sha256": doc_hash,
+                    "page": s["page"],
+                    "block_id": s["block_id"],
+                    "char_start": 0,
+                    "char_end": len(s["text"]),
+                    "text": s["text"],
+                    "bbox": s["bbox"],
+                    "verification_status": "unverified",
+                })
+        except Exception as e:
+            warnings.append(f"Spatial extraction error on {target_path.name}: {str(e)}")
+
+    return {
+        "document_hashes": document_hashes,
+        "parsed_pages": parsed_pages,
+        "evidence_spans": evidence_spans,
+        "warnings": warnings,
+    }
+
 
 def quantitative_node(state: AgentState) -> dict[str, Any]:
     """
@@ -25,10 +104,10 @@ def quantitative_node(state: AgentState) -> dict[str, Any]:
         [f"Document: {p.get('file_name')}\n{p.get('markdown', '')}" for p in parsed_pages]
     )
 
-    # 1. Dynamic Structured Extraction via Bedrock Claude 3.5 Sonnet
+    # 1. Dynamic Structured Extraction via Bedrock Claude Sonnet
     extracted_data = _bedrock_llm.extract_financial_data(combined_markdown)
 
-    # Also resolve fallback values from input_documents if unparsed
+    # Resolve fallback values from input_documents if unparsed
     docs = {doc.get("document_type", "").lower(): doc for doc in state.get("input_documents", [])}
 
     po_val = extracted_data.get("po_total") or docs.get("purchase_order", {}).get("total_amount", "0")
@@ -97,180 +176,6 @@ def quantitative_node(state: AgentState) -> dict[str, Any]:
     }
 
 
-def composer_node(state: AgentState) -> dict[str, Any]:
-    """
-    Report Composer Node:
-    Synthesizes the executive credit audit memo citing evidence coordinates
-    using Bedrock Claude 3.5 Sonnet.
-    """
-    findings = state.get("findings", [])
-    calculations = state.get("calculations", [])
-    evidence_spans = state.get("evidence_spans", [])
-
-    primary_span_id = evidence_spans[0]["id"] if evidence_spans else "span-cobalt-001"
-
-    report_claims: list[dict] = []
-    for idx, f in enumerate(findings):
-        report_claims.append({
-            "id": f"claim-{idx + 1}",
-            "claim_type": f["kind"],
-            "severity": f["severity"],
-            "claim_text": f["statement"],
-            "evidence_span_ids": [primary_span_id],
-            "verification_status": "verified",
-        })
-
-    # Invoke Bedrock for executive audit synthesis
-    memo_summary = _bedrock_llm.compose_audit_memo(findings, calculations)
-
-    return {
-        "report_claims": report_claims,
-        "token_usage": 450,
-        "cost_usd": 0.0025,
-        "candidate_assertions": [{"summary": memo_summary}],
-    }
-
-def _compute_sha256(file_path: Path) -> str:
-    """Computes SHA-256 checksum across document raw bytes."""
-    hasher = hashlib.sha256()
-    with open(file_path, "rb") as f:
-        while chunk := f.read(65536):
-            hasher.update(chunk)
-    return hasher.hexdigest()
-
-
-def ingestion_node(state: AgentState) -> dict[str, Any]:
-    """
-    Ingestion Parser Node:
-    Resolves document artifacts, calculates immutable SHA-256 byte hashes,
-    parses layout hierarchies via Docling, and maps spatial evidence spans.
-    """
-    docs = state.get("input_documents", [])
-    output_dir = Path("synthetic_data/output")
-
-    document_hashes: list[str] = []
-    parsed_pages: list[dict[str, Any]] = []
-    evidence_spans: list[dict[str, Any]] = []
-    warnings: list[str] = []
-
-    for idx, doc in enumerate(docs):
-        # Resolve path from explicit file_path or file_name in synthetic output directory
-        file_name = doc.get("file_name") or f"{doc.get('document_type', f'doc_{idx}')}.pdf"
-        target_path = Path(doc.get("file_path", output_dir / file_name))
-
-        if not target_path.exists():
-            # Graceful warning if running metadata-only synthetic test
-            warnings.append(f"Document file not found at {target_path}; utilizing metadata hash.")
-            doc_hash = doc.get("sha256", f"unhashed-doc-{idx}")
-            document_hashes.append(doc_hash)
-            continue
-
-        # 1. Cryptographic Hash Pinning
-        doc_hash = _compute_sha256(target_path)
-        document_hashes.append(doc_hash)
-
-        # 2. Structural Markdown Parsing via Docling
-        try:
-            parsed = parse_pdf_document(target_path)
-            parsed_pages.append({
-                "document_id": doc.get("document_id", f"doc-{idx}"),
-                "document_type": doc.get("document_type", "UNKNOWN"),
-                "file_name": target_path.name,
-                "sha256": doc_hash,
-                "markdown": parsed["markdown"],
-            })
-        except Exception as e:
-            warnings.append(f"Docling parse error on {target_path.name}: {str(e)}")
-
-        # 3. Spatial Bounding Box Extraction
-        try:
-            spans = extract_spatial_spans(target_path)
-            for s in spans:
-                evidence_spans.append({
-                    "id": f"span-{doc_hash[:8]}-{s['block_id']}",
-                    "document_version_id": f"ver-{doc_hash[:8]}",
-                    "source_sha256": doc_hash,
-                    "page": s["page"],
-                    "block_id": s["block_id"],
-                    "char_start": 0,
-                    "char_end": len(s["text"]),
-                    "text": s["text"],
-                    "bbox": s["bbox"],
-                    "verification_status": "unverified",
-                })
-        except Exception as e:
-            warnings.append(f"Spatial extraction error on {target_path.name}: {str(e)}")
-
-    return {
-        "document_hashes": document_hashes,
-        "parsed_pages": parsed_pages,
-        "evidence_spans": evidence_spans,
-        "warnings": warnings,
-    }
-
-
-def quantitative_node(state: AgentState) -> dict[str, Any]:
-    """
-    Quantitative Auditor Node:
-    Invokes deterministic Python calculation engines for DSCR and 3-way matching.
-    Never delegates arithmetic calculations to probabilistic LLMs.
-    """
-    docs = {doc.get("document_type", "").lower(): doc for doc in state.get("input_documents", [])}
-
-    calculations: list[dict] = []
-    discrepancies: list[dict] = []
-
-    # 1. Deterministic 3-Way Reconciliation
-    if "purchase_order" in docs and "invoice" in docs and "bank_payment" in docs:
-        po_total = Decimal(str(docs["purchase_order"].get("total_amount", "0")))
-        inv_total = Decimal(str(docs["invoice"].get("total_amount", "0")))
-        bank_total = Decimal(str(docs["bank_payment"].get("total_amount", "0")))
-
-        match_res = match_three_way(
-            po_total=po_total,
-            invoice_total=inv_total,
-            bank_payment_total=bank_total,
-        )
-
-        for disc in match_res.discrepancies:
-            discrepancies.append({
-                "id": f"disc-{disc.discrepancy_type}",
-                "type": disc.discrepancy_type,
-                "severity": disc.severity,
-                "variance": float(disc.variance),
-                "description": disc.description,
-            })
-
-    # 2. Deterministic DSCR Recomputation
-    # Example financial statement inputs from credit packet
-    cert_doc = docs.get("covenant_certificate", {})
-    ebitda = Decimal(str(cert_doc.get("ebitda", "1500000")))
-    cash_taxes = Decimal(str(cert_doc.get("cash_taxes", "100000")))
-    interest_expense = Decimal(str(cert_doc.get("interest_expense", "700000")))
-    current_maturities = Decimal(str(cert_doc.get("current_maturities", "500000")))
-
-    dscr_res = calculate_dscr(
-        ebitda=ebitda,
-        cash_taxes=cash_taxes,
-        interest_expense=interest_expense,
-        current_maturities=current_maturities,
-    )
-
-    calculations.append({
-        "id": "calc-dscr-001",
-        "name": "Debt Service Coverage Ratio",
-        "formula": "(EBITDA - Cash Taxes) / (Interest Expense + Current Maturities)",
-        "output": float(dscr_res.ratio),
-        "numerator": float(dscr_res.numerator),
-        "denominator": float(dscr_res.denominator),
-    })
-
-    return {
-        "calculations": calculations,
-        "discrepancies": discrepancies,
-    }
-
-
 def compliance_node(state: AgentState) -> dict[str, Any]:
     """
     Compliance Critic Node:
@@ -323,13 +228,14 @@ def compliance_node(state: AgentState) -> dict[str, Any]:
 def composer_node(state: AgentState) -> dict[str, Any]:
     """
     Report Composer Node:
-    Composes the formal credit audit memo citing evidence coordinates.
-    Leverages Amazon Bedrock (Claude 3.5 Sonnet) when AWS credentials are present,
-    with a deterministic fallback compiler for local zero-dependency testing.
+    Synthesizes the executive credit audit memo citing evidence coordinates
+    using Amazon Bedrock Claude Sonnet.
     """
     findings = state.get("findings", [])
     calculations = state.get("calculations", [])
-    review_required = state.get("review_required", False)
+    evidence_spans = state.get("evidence_spans", [])
+
+    primary_span_id = evidence_spans[0]["id"] if evidence_spans else "span-cobalt-001"
 
     report_claims: list[dict] = []
     for idx, f in enumerate(findings):
@@ -338,42 +244,12 @@ def composer_node(state: AgentState) -> dict[str, Any]:
             "claim_type": f["kind"],
             "severity": f["severity"],
             "claim_text": f["statement"],
-            "evidence_span_ids": ["span-cobalt-001"],
+            "evidence_span_ids": [primary_span_id],
             "verification_status": "verified",
         })
 
-    # Attempt Bedrock inference if configured in environment
-    aws_region = os.getenv("AWS_DEFAULT_REGION", "us-east-1")
-    use_bedrock = bool(os.getenv("AWS_ACCESS_KEY_ID") and os.getenv("AWS_SECRET_ACCESS_KEY"))
-
-    memo_summary = ""
-    if use_bedrock:
-        try:
-            import boto3
-            client = boto3.client("bedrock-runtime", region_name=aws_region)
-            prompt = (
-                f"Synthesize an executive commercial credit audit summary based strictly on these findings: "
-                f"{json.dumps(findings)}"
-            )
-            payload = {
-                "anthropic_version": "bedrock-2023-05-31",
-                "max_tokens": 1000,
-                "messages": [{"role": "user", "content": prompt}],
-            }
-            resp = client.invoke_model(
-                modelId="anthropic.claude-3-5-sonnet-20241022-v2:0",
-                body=json.dumps(payload),
-            )
-            resp_body = json.loads(resp["body"].read())
-            memo_summary = resp_body["content"][0]["text"]
-        except Exception as e:
-            memo_summary = f"[Bedrock routing fallback: {str(e)}]"
-
-    if not memo_summary:
-        memo_summary = (
-            f"AUDIT SUMMARY: Package requires human review ({len(findings)} findings). "
-            f"Recomputed DSCR: {calculations[0]['output'] if calculations else 'N/A'}x."
-        )
+    # Invoke Bedrock for executive audit synthesis
+    memo_summary = _bedrock_llm.compose_audit_memo(findings, calculations)
 
     return {
         "report_claims": report_claims,
@@ -381,50 +257,3 @@ def composer_node(state: AgentState) -> dict[str, Any]:
         "cost_usd": 0.0025,
         "candidate_assertions": [{"summary": memo_summary}],
     }
-
-
-if __name__ == "__main__":
-    # Test execution across all 4 swarm nodes using the Cobalt sample
-    initial_state: AgentState = {
-        "run_id": "test-run-001",
-        "input_documents": [
-            {
-                "document_type": "purchase_order",
-                "total_amount": "125000.00",
-                "sha256": "hash-po-001",
-            },
-            {
-                "document_type": "invoice",
-                "total_amount": "125000.00",
-                "sha256": "hash-inv-001",
-            },
-            {
-                "document_type": "bank_payment",
-                "total_amount": "152000.00",
-                "sha256": "hash-bank-001",
-            },
-            {
-                "document_type": "covenant_certificate",
-                "ebitda": "1500000.00",
-                "cash_taxes": "100000.00",
-                "interest_expense": "700000.00",
-                "current_maturities": "500000.00",
-                "reported_dscr": "1.31",
-            },
-        ],
-    }
-
-    # Step through node pipeline
-    s1 = {**initial_state, **ingestion_node(initial_state)}
-    s2 = {**s1, **quantitative_node(s1)}
-    s3 = {**s2, **compliance_node(s2)}
-    s4 = {**s3, **composer_node(s3)}
-
-    print(f"1. Ingestion: Document hashes registered: {len(s1.get('document_hashes', []))}")
-    print(f"2. Quantitative: Calculations recomputed: {len(s2.get('calculations', []))}")
-    print(f"   - DSCR Output: {s2['calculations'][0]['output']}x")
-    print(f"3. Compliance: Findings flagged: {len(s3.get('findings', []))}")
-    print(f"   - Review Required: {s3.get('review_required')}")
-    for f in s3.get("findings", []):
-        print(f"     * [{f['severity'].upper()}] {f['title']}")
-    print(f"4. Composer: Report claims generated: {len(s4.get('report_claims', []))}")

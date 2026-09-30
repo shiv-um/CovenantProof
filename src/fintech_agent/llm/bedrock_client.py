@@ -5,6 +5,8 @@ from typing import Any, Optional
 import boto3
 from botocore.config import Config
 from botocore.exceptions import ClientError
+from opentelemetry import trace as trace_api
+from opentelemetry.trace import SpanKind
 from pydantic import BaseModel, Field
 
 
@@ -23,13 +25,11 @@ class FinancialExtractionSchema(BaseModel):
 class BedrockAgentLLM:
     """
     Amazon Bedrock reasoning provider utilizing the unified Converse API.
-    Enforces deterministic temperatures (0.0), adaptive retry backoff,
-    and structured JSON decoding against Pydantic schemas.
+    Instrumented with OpenTelemetry to report token consumption and latency directly to Phoenix.
     """
 
     def __init__(
         self,
-        # In us-east-1, Bedrock routes Claude 3.5 Sonnet v2 through this system inference profile
         model_id: str = "us.anthropic.claude-sonnet-4-5-20250929-v1:0",
         region_name: Optional[str] = None,
         max_tokens: int = 2048,
@@ -39,6 +39,7 @@ class BedrockAgentLLM:
         self.region_name = region_name or os.getenv("AWS_DEFAULT_REGION", "us-east-1")
         self.max_tokens = max_tokens
         self.temperature = temperature
+        self.tracer = trace_api.get_tracer("covenantproof.llm")
 
         retry_config = Config(
             region_name=self.region_name,
@@ -49,7 +50,7 @@ class BedrockAgentLLM:
     def extract_financial_data(self, markdown_corpus: str) -> dict[str, Any]:
         """
         Extracts structured financial line-items from parsed document markdown.
-        Falls back to regex extraction if AWS credentials are not active.
+        Reports token counts, latency, and model attributes to Arize Phoenix.
         """
         system_prompt = (
             "You are an expert financial auditor extraction agent. Extract exact numeric "
@@ -59,41 +60,64 @@ class BedrockAgentLLM:
             "interest_expense, current_maturities, reported_dscr. "
             "Omit currency signs ($) and commas. Do not include markdown code block formatting."
         )
-
         user_prompt = f"Extract financial metrics from these parsed credit documents:\n\n{markdown_corpus}"
 
         if not (os.getenv("AWS_ACCESS_KEY_ID") and os.getenv("AWS_SECRET_ACCESS_KEY")):
-            print("[Bedrock] AWS credentials missing in environment; using heuristic fallback.")
             return self._heuristic_fallback(markdown_corpus)
 
-        try:
-            messages = [{"role": "user", "content": [{"text": user_prompt}]}]
-            response = self.client.converse(
-                modelId=self.model_id,
-                messages=messages,
-                system=[{"text": system_prompt}],
-                inferenceConfig={
-                    "maxTokens": self.max_tokens,
-                    "temperature": self.temperature,
-                },
-            )
-            raw_text = response["output"]["message"]["content"][0]["text"].strip()
+        # OpenTelemetry span formatted for Phoenix LLM detection
+        with self.tracer.start_as_current_span(
+            name=f"Bedrock Converse: {self.model_id}",
+            kind=SpanKind.CLIENT,
+        ) as span:
+            span.set_attribute("openinference.span.kind", "LLM")
+            span.set_attribute("llm.model_name", self.model_id)
+            span.set_attribute("llm.provider", "bedrock")
+            span.set_attribute("llm.prompts.0.role", "system")
+            span.set_attribute("llm.prompts.0.content", system_prompt)
+            span.set_attribute("llm.prompts.1.role", "user")
+            span.set_attribute("llm.prompts.1.content", user_prompt[:1000])
 
-            if raw_text.startswith("```json"):
-                raw_text = raw_text[7:-3].strip()
-            elif raw_text.startswith("```"):
-                raw_text = raw_text[3:-3].strip()
+            try:
+                messages = [{"role": "user", "content": [{"text": user_prompt}]}]
+                response = self.client.converse(
+                    modelId=self.model_id,
+                    messages=messages,
+                    system=[{"text": system_prompt}],
+                    inferenceConfig={
+                        "maxTokens": self.max_tokens,
+                        "temperature": self.temperature,
+                    },
+                )
 
-            data = json.loads(raw_text)
-            print(f"[Bedrock API] Successfully invoked {self.model_id} via Converse API.")
-            return data
+                # Record token metrics returned by Bedrock Converse API
+                usage = response.get("usage", {})
+                in_tokens = usage.get("inputTokens", 0)
+                out_tokens = usage.get("outputTokens", 0)
+                total_tokens = usage.get("totalTokens", in_tokens + out_tokens)
 
-        except (ClientError, Exception) as exc:
-            print(f"[Bedrock API Warning] Call failed ({type(exc).__name__}: {exc}); activating heuristic fallback.")
-            return self._heuristic_fallback(markdown_corpus, error=str(exc))
+                span.set_attribute("llm.token_count.prompt", in_tokens)
+                span.set_attribute("llm.token_count.completion", out_tokens)
+                span.set_attribute("llm.token_count.total", total_tokens)
+
+                raw_text = response["output"]["message"]["content"][0]["text"].strip()
+                span.set_attribute("llm.response.content", raw_text)
+
+                if raw_text.startswith("```json"):
+                    raw_text = raw_text[7:-3].strip()
+                elif raw_text.startswith("```"):
+                    raw_text = raw_text[3:-3].strip()
+
+                data = json.loads(raw_text)
+                return data
+
+            except (ClientError, Exception) as exc:
+                span.record_exception(exc)
+                span.set_status(trace_api.StatusCode.ERROR, str(exc))
+                return self._heuristic_fallback(markdown_corpus, error=str(exc))
 
     def compose_audit_memo(self, findings: list[dict[str, Any]], calculations: list[dict[str, Any]]) -> str:
-        """Composes an evidence-grounded credit audit memo using Claude 3.5 Sonnet."""
+        """Composes an evidence-grounded credit audit memo using Claude Sonnet."""
         if not (os.getenv("AWS_ACCESS_KEY_ID") and os.getenv("AWS_SECRET_ACCESS_KEY")):
             dscr_val = calculations[0]["output"] if calculations else "N/A"
             return (
@@ -108,35 +132,46 @@ class BedrockAgentLLM:
             "formal credit audit memo summarizing the findings and calculations. "
             "Reference evidence-grounded facts and do not make automated credit decisions."
         )
-
         user_prompt = (
             f"Findings:\n{json.dumps(findings, indent=2)}\n\n"
             f"Deterministic Calculations:\n{json.dumps(calculations, indent=2)}"
         )
 
-        try:
-            messages = [{"role": "user", "content": [{"text": user_prompt}]}]
-            response = self.client.converse(
-                modelId=self.model_id,
-                messages=messages,
-                system=[{"text": system_prompt}],
-                inferenceConfig={
-                    "maxTokens": self.max_tokens,
-                    "temperature": self.temperature,
-                },
-            )
-            memo = response["output"]["message"]["content"][0]["text"].strip()
-            print(f"[Bedrock API] Audit memo successfully generated by {self.model_id}.")
-            return memo
+        with self.tracer.start_as_current_span(
+            name=f"Bedrock Compose Memo: {self.model_id}",
+            kind=SpanKind.CLIENT,
+        ) as span:
+            span.set_attribute("openinference.span.kind", "LLM")
+            span.set_attribute("llm.model_name", self.model_id)
+            span.set_attribute("llm.provider", "bedrock")
 
-        except Exception as exc:
-            print(f"[Bedrock API Warning] Memo composition failed ({exc}); using deterministic fallback.")
-            return f"AUDIT MEMO (Bedrock Fallback: {str(exc)})"
+            try:
+                messages = [{"role": "user", "content": [{"text": user_prompt}]}]
+                response = self.client.converse(
+                    modelId=self.model_id,
+                    messages=messages,
+                    system=[{"text": system_prompt}],
+                    inferenceConfig={
+                        "maxTokens": self.max_tokens,
+                        "temperature": self.temperature,
+                    },
+                )
+                usage = response.get("usage", {})
+                span.set_attribute("llm.token_count.prompt", usage.get("inputTokens", 0))
+                span.set_attribute("llm.token_count.completion", usage.get("outputTokens", 0))
+                span.set_attribute("llm.token_count.total", usage.get("totalTokens", 0))
+
+                memo = response["output"]["message"]["content"][0]["text"].strip()
+                span.set_attribute("llm.response.content", memo)
+                return memo
+            except Exception as exc:
+                span.record_exception(exc)
+                span.set_status(trace_api.StatusCode.ERROR, str(exc))
+                return f"AUDIT MEMO (Bedrock Fallback: {str(exc)})"
 
     def _heuristic_fallback(self, text: str, error: Optional[str] = None) -> dict[str, Any]:
         """Deterministic regex parsing when cloud inference endpoint is unauthenticated."""
         extracted: dict[str, Any] = {}
-
         patterns = {
             "po_total": r"GRAND TOTAL:?\s*\$?([\d,]+\.?\d*)",
             "invoice_total": r"GRAND TOTAL:?\s*\$?([\d,]+\.?\d*)",
@@ -146,10 +181,8 @@ class BedrockAgentLLM:
             "interest_expense": r"Interest Expense:?\s*\$?([\d,]+\.?\d*)",
             "current_maturities": r"Current Maturities:?\s*\$?([\d,]+\.?\d*)",
         }
-
         for field_name, regex in patterns.items():
             match = re.search(regex, text, re.IGNORECASE)
             if match:
                 extracted[field_name] = match.group(1).replace(",", "")
-
         return extracted
