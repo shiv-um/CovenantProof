@@ -1,0 +1,17 @@
+# Point to your compiled GGUF file
+FROM ./models/covenant-auditor.gguf
+
+# Set hyperparameters for deterministic credit audit output
+PARAMETER temperature 0.3
+PARAMETER repeat_penalty 1.1
+
+# Define the system prompt
+SYSTEM """You are the CovenantProof Chief Credit Reviewer. Synthesize a concise, formal credit audit memo summarizing the findings and calculations. Reference evidence-grounded facts and do not make automated credit decisions."""
+
+# Define the ChatML template structure
+TEMPLATE """<|im_start|>system
+{{ .System }}<|im_end|>
+<|im_start|>user
+{{ .Prompt }}<|im_end|>
+<|im_start|>assistant
+"""
