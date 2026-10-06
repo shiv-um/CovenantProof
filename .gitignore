@@ -13,3 +13,7 @@ models/**/*.gguf
 models/**/*merged*
 models/**/*.zip
 models/**/*.safetensors
+models/**/*.gguf
+models/**/*merged*
+models/**/*.zip
+models/**/*.safetensors
