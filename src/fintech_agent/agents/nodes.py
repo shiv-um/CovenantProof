@@ -229,8 +229,12 @@ def composer_node(state: AgentState) -> dict[str, Any]:
     """
     Report Composer Node:
     Synthesizes the executive credit audit memo citing evidence coordinates
-    using Amazon Bedrock Claude Sonnet.
+    using the locally fine-tuned GGUF covenant-auditor model via Ollama.
     """
+    import os
+    from langchain_community.chat_models import ChatOllama
+    from langchain_core.messages import SystemMessage, HumanMessage
+
     findings = state.get("findings", [])
     calculations = state.get("calculations", [])
     evidence_spans = state.get("evidence_spans", [])
@@ -248,12 +252,28 @@ def composer_node(state: AgentState) -> dict[str, Any]:
             "verification_status": "verified",
         })
 
-    # Invoke Bedrock for executive audit synthesis
-    memo_summary = _bedrock_llm.compose_audit_memo(findings, calculations)
+    # Route inference to the local edge model instead of AWS Bedrock
+    ollama_url = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
+    model_name = os.getenv("MODEL_NAME", "covenant-auditor")
+
+    llm = ChatOllama(
+        base_url=ollama_url,
+        model=model_name,
+        temperature=0.3
+    )
+
+    messages = [
+        SystemMessage(
+            content="You are the CovenantProof Chief Credit Reviewer. Synthesize a concise, formal credit audit memo summarizing the findings and calculations. Reference evidence-grounded facts and do not make automated credit decisions."),
+        HumanMessage(content=f"Findings:\n{findings}\nCalculations:\n{calculations}")
+    ]
+
+    response = llm.invoke(messages)
+    memo_summary = response.content
 
     return {
         "report_claims": report_claims,
-        "token_usage": 450,
-        "cost_usd": 0.0025,
+        "token_usage": 450,  # Mocked for budget tracking
+        "cost_usd": 0.0000,  # Edge inference is free
         "candidate_assertions": [{"summary": memo_summary}],
     }

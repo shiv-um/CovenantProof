@@ -50,6 +50,11 @@ services:
       - REDIS_URL=redis://redis:6379/0
       - POSTGRES_URI=postgresql://postgres:postgrespassword@postgres:5432/covenantproof?sslmode=disable
       - AWS_DEFAULT_REGION=us-east-1
+      # Route LangChain inside Docker to talk to the Ollama model running natively on the host OS
+      - OLLAMA_BASE_URL=http://host.docker.internal:11434
+      - MODEL_NAME=covenant-auditor
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     ports:
       - "8000:8000"
     depends_on:
