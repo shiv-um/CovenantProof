@@ -23,6 +23,7 @@ export default function WorkspacePage() {
         covenant_certificate: { document_type: "covenant_certificate", ebitda: "1500000.00", cash_taxes: "100000.00", interest_expense: "700000.00", current_maturities: "500000.00" }
       };
 
+
       // Calls your live AWS EC2 server
       const res = await fetch("http://52.90.159.170:8000/api/v1/audits", {
         method: "POST",
