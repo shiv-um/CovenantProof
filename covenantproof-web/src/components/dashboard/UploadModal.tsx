@@ -66,15 +66,31 @@ export function UploadModal({ isOpen, onClose, onIngestComplete }: UploadModalPr
     });
   };
 
-  // Downloads the actual mock PDF so users can test file upload manually
+  // Generates and downloads a real, openable sample wire receipt PDF in the browser
   const handleDownloadSamplePdf = () => {
+    const rawPdf =
+      "%PDF-1.4\n" +
+      "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n" +
+      "2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n" +
+      "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>\nendobj\n" +
+      "4 0 obj\n<< /Length 212 >>\nstream\n" +
+      "BT\n/F1 20 Tf\n72 710 Td\n(BANK PAYMENT WIRE RECEIPT) Tj\n/F1 12 Tf\n0 -36 Td\n(Payment ID: PAY-2026-4412) Tj\n0 -20 Td\n(Beneficiary: Atlas Industrial Supply Inc.) Tj\n0 -20 Td\n(Amount Transferred: $152,000.00) Tj\n0 -40 Td\n(Federal Reserve Wire Ref: FED-889104-NY) Tj\nET\n" +
+      "endstream\nendobj\n" +
+      "5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n" +
+      "xref\n0 6\n0000000000 65535 f \n0000000009 00000 n \n0000000058 00000 n \n0000000115 00000 n \n0000000244 00000 n \n0000000508 00000 n \n" +
+      "trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n585\n%%EOF\n";
+
+    const blob = new Blob([rawPdf], { type: "application/pdf" });
+    const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
-    link.href = "/mock.pdf";
+    link.href = url;
     link.download = "Sample-Bank-Wire-Receipt.pdf";
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
+
 
   const handleSimulateCustomIngest = () => {
     onIngestComplete({
