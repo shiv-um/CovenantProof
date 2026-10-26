@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { BoundingBoxViewer } from "@/components/pdf/BoundingBoxViewer";
 import { RecruiterDrawer } from "@/components/dashboard/RecruiterDrawer";
+import { UploadModal } from "@/components/dashboard/UploadModal";
 import {
   PlayCircle,
   Loader2,
@@ -15,7 +16,8 @@ import {
   SlidersHorizontal,
   RotateCcw,
   Sparkles,
-  ShieldCheck
+  ShieldCheck,
+  UploadCloud,
 } from "lucide-react";
 
 type ScenarioType = "tampering" | "clean" | "covenant_breach";
@@ -76,6 +78,7 @@ export default function WorkspacePage() {
   const [selectedScenario, setSelectedScenario] = useState<ScenarioType>("tampering");
   const [auditInputs, setAuditInputs] = useState<AuditInputs>(SCENARIOS.tampering.inputs);
   const [showEditor, setShowEditor] = useState<boolean>(false);
+  const [isUploadOpen, setIsUploadOpen] = useState<boolean>(false);
   const [status, setStatus] = useState<"idle" | "analyzing" | "complete" | "error">("idle");
   const [auditResult, setAuditResult] = useState<any>(null);
 
@@ -178,7 +181,7 @@ export default function WorkspacePage() {
         </div>
       </header>
 
-      {/* Recruiter Scenario Guidance Bar: Buttons grouped directly after label */}
+      {/* Recruiter Scenario Guidance Bar */}
       <div className="bg-slate-900/90 border-b border-slate-800 px-6 py-2.5 flex items-center gap-4 text-xs">
         <div className="flex items-center gap-2 text-slate-400 shrink-0">
           <Sparkles className="w-3.5 h-3.5 text-amber-400" />
@@ -265,9 +268,16 @@ export default function WorkspacePage() {
               <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400">
                 Ingested Documents
               </h3>
-              <span className="text-[10px] font-mono text-slate-500">3 Verified</span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsUploadOpen(true)}
+                className="h-6 text-[10px] px-2 border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-300"
+              >
+                <UploadCloud className="w-3 h-3 mr-1 text-indigo-400" />
+                Upload
+              </Button>
             </div>
-
             <div className="p-3 bg-slate-900 rounded-lg border border-slate-800 text-xs flex justify-between items-center">
               <div>
                 <span className="block font-medium">📄 PO-2026-8801.pdf</span>
@@ -502,6 +512,22 @@ export default function WorkspacePage() {
           />
         </ResizablePanel>
       </ResizablePanelGroup>
+
+      {/* Custom Document Upload Modal */}
+      <UploadModal
+        isOpen={isUploadOpen}
+        onClose={() => setIsUploadOpen(false)}
+        onIngestComplete={(custom) => {
+          setAuditInputs((prev) => ({
+            ...prev,
+            poAmount: custom.poAmount,
+            invAmount: custom.invAmount,
+            payAmount: custom.payAmount,
+            ebitda: custom.ebitda,
+          }));
+          setStatus("idle");
+        }}
+      />
     </div>
   );
 }
