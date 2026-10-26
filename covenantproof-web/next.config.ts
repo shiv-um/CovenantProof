@@ -1,16 +1,13 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
-  cacheComponents: true,
-  partialPrefetching: true,
-  turbopack: {
-    rules: {
-      "*.css": {
-        loaders: ["@tailwindcss/turbopack"],
-        as: "*.css",
+  async rewrites() {
+    return [
+      {
+        source: "/api/proxy/:path*",
+        destination: "http://52.90.159.170:8000/:path*",
       },
-    },
+    ];
   },
 };
 
