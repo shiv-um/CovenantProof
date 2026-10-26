@@ -158,9 +158,9 @@ export default function WorkspacePage() {
               status === "complete"
                 ? {
                     page: 1,
-                    x_min: 0.306,
+                    x_min: 0.314,
                     y_min: 0.207,
-                    x_max: 0.448,
+                    x_max: 0.505,
                     y_max: 0.245,
                   }
                 : null
