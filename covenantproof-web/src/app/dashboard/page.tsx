@@ -178,9 +178,9 @@ export default function WorkspacePage() {
         </div>
       </header>
 
-      {/* Recruiter Scenario Guidance Bar */}
-      <div className="bg-slate-900/90 border-b border-slate-800 px-6 py-2.5 flex items-center justify-between text-xs">
-        <div className="flex items-center gap-2 text-slate-400">
+      {/* Recruiter Scenario Guidance Bar: Buttons grouped directly after label */}
+      <div className="bg-slate-900/90 border-b border-slate-800 px-6 py-2.5 flex items-center gap-4 text-xs">
+        <div className="flex items-center gap-2 text-slate-400 shrink-0">
           <Sparkles className="w-3.5 h-3.5 text-amber-400" />
           <span className="font-medium text-slate-300">Recruiter Test Scenarios:</span>
         </div>
@@ -256,7 +256,7 @@ export default function WorkspacePage() {
         </div>
       )}
 
-      {/* Main 3-Column Audit Workspace */}
+      {/* Main 3-Column Workspace */}
       <ResizablePanelGroup className="flex-1 flex flex-row">
         {/* Panel 1: Document Tree */}
         <ResizablePanel defaultSize={20} minSize={15}>
@@ -344,7 +344,7 @@ export default function WorkspacePage() {
 
         <ResizableHandle />
 
-        {/* Panel 2: Reconciliation Findings & LLM Memo */}
+        {/* Panel 2: Reconciliation Findings */}
         <ResizablePanel defaultSize={45} minSize={30}>
           <div className="p-6 space-y-6 overflow-y-auto h-full">
             {status === "idle" && (
@@ -379,7 +379,7 @@ export default function WorkspacePage() {
 
             {status === "complete" && (
               <div className="space-y-4 animate-in fade-in zoom-in-95 duration-300">
-                {/* 3-Way Reconciliation Card */}
+                {/* 3-Way Match Result */}
                 {hasWireDiscrepancy ? (
                   <Card className="bg-amber-950/20 border-amber-500/40 text-slate-100">
                     <CardHeader className="pb-2">
@@ -427,7 +427,7 @@ export default function WorkspacePage() {
                   </Card>
                 )}
 
-                {/* Covenant Math Card */}
+                {/* Covenant Ratio Result */}
                 <Card
                   className={`text-slate-100 ${
                     isCovenantBreached
@@ -467,7 +467,7 @@ export default function WorkspacePage() {
                   </CardContent>
                 </Card>
 
-                {/* Fine-Tuned Model Generated Audit Memo */}
+                {/* Fine-Tuned Local LLM Audit Memo */}
                 {auditResult?.candidate_assertions?.[0]?.summary && (
                   <div className="bg-slate-900/80 rounded-lg border border-slate-800 p-4 space-y-2">
                     <div className="flex items-center justify-between">
@@ -488,19 +488,15 @@ export default function WorkspacePage() {
 
         <ResizableHandle />
 
-        {/* Panel 3: PDF Bounding Box Evidence Viewer */}
+        {/* Panel 3: Dynamic PDF Evidence Viewer */}
         <ResizablePanel defaultSize={35} minSize={25}>
           <BoundingBoxViewer
             pdfUrl="/mock.pdf"
+            amount={auditInputs.payAmount}
+            hasDiscrepancy={hasWireDiscrepancy}
             activeBox={
               status === "complete" && hasWireDiscrepancy
-                ? {
-                    page: 1,
-                    x_min: 0.322,
-                    y_min: 0.207,
-                    x_max: 0.495,
-                    y_max: 0.245,
-                  }
+                ? { page: 1, x_min: 0, y_min: 0, x_max: 0, y_max: 0 }
                 : null
             }
           />
