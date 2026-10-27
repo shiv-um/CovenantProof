@@ -6,8 +6,6 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { BoundingBoxViewer, ActiveDocType } from "@/components/pdf/BoundingBoxViewer";
-import { RecruiterDrawer } from "@/components/dashboard/RecruiterDrawer";
-import { PortfolioScaleModal } from "@/components/dashboard/PortfolioScaleModal";
 import {
   PlayCircle,
   Loader2,
@@ -18,12 +16,13 @@ import {
   Sparkles,
   ShieldCheck,
   FileText,
-  Info,
-  Smartphone,
+  Eye,
+  Layers,
   Database
 } from "lucide-react";
 
 type ScenarioType = "tampering" | "clean" | "covenant_breach";
+type MobileTab = "documents" | "analysis" | "evidence";
 
 interface AuditInputs {
   poAmount: string;
@@ -82,10 +81,9 @@ export default function WorkspacePage() {
   const [auditInputs, setAuditInputs] = useState<AuditInputs>(SCENARIOS.tampering.inputs);
   const [activeDoc, setActiveDoc] = useState<ActiveDocType>("payment");
   const [showEditor, setShowEditor] = useState<boolean>(false);
-  const [showPurpose, setShowPurpose] = useState<boolean>(true);
-  const [showScaleModal, setShowScaleModal] = useState<boolean>(false);
   const [status, setStatus] = useState<"idle" | "analyzing" | "complete" | "error">("idle");
   const [auditResult, setAuditResult] = useState<any>(null);
+  const [mobileTab, setMobileTab] = useState<MobileTab>("analysis");
 
   const applyScenario = (type: ScenarioType) => {
     setSelectedScenario(type);
@@ -97,6 +95,7 @@ export default function WorkspacePage() {
 
   const runLiveAudit = async () => {
     setStatus("analyzing");
+    setMobileTab("analysis");
     try {
       const payload = {
         case_id: `CASE-COBALT-${Date.now().toString().slice(-4)}`,
@@ -146,133 +145,46 @@ export default function WorkspacePage() {
   const isCovenantBreached = fccr < 1.15;
 
   return (
-    <div className="h-screen flex flex-col bg-slate-950 text-slate-100 font-sans">
+    <div className="flex-1 flex flex-col bg-slate-950 text-slate-100 font-sans overflow-hidden">
 
-      {/* Mobile Screen Advisory */}
-      <div className="lg:hidden bg-amber-500/10 border-b border-amber-500/30 px-4 py-2 flex items-center justify-between text-[11px] text-amber-300">
-        <span className="flex items-center gap-1.5">
-          <Smartphone className="w-3.5 h-3.5" /> Best experienced on Desktop for multi-pane audit verification.
-        </span>
-      </div>
-
-      {/* Top Header */}
-      <header className="h-14 border-b border-slate-800 flex items-center justify-between px-6 bg-slate-900/60 backdrop-blur">
+      {/* Enterprise Portfolio Batch Telemetry Bar */}
+      <div className="bg-slate-900/90 border-b border-slate-800 px-4 md:px-6 py-2 flex flex-wrap items-center justify-between gap-2 text-xs">
         <div className="flex items-center gap-3">
-          <span className="font-bold text-lg text-emerald-400 tracking-tight">CovenantProof</span>
-          <Badge variant="outline" className="text-slate-400 border-slate-700 font-mono text-[10px]">
-            AWS TESLA T4 • LOCAL QLoRA
-          </Badge>
-        </div>
-
-        <div className="flex items-center gap-2.5">
-          {/* Strategy 3 Modal Trigger Button */}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setShowScaleModal(true)}
-            className="border-indigo-500/30 bg-indigo-950/20 hover:bg-indigo-900/40 text-indigo-300 text-xs h-8"
-          >
-            <Database className="w-3.5 h-3.5 mr-1.5 text-indigo-400" />
-            Enterprise Scale (1.2M Docs)
-          </Button>
-
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setShowPurpose(!showPurpose)}
-            className="text-slate-400 hover:text-slate-200 text-xs h-8"
-          >
-            <Info className="w-3.5 h-3.5 mr-1" />
-            {showPurpose ? "Hide Purpose" : "What is this?"}
-          </Button>
-
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setShowEditor(!showEditor)}
-            className="border-slate-700 bg-slate-800/80 hover:bg-slate-700 text-slate-200 text-xs h-8"
-          >
-            <SlidersHorizontal className="w-3.5 h-3.5 mr-1.5 text-indigo-400" />
-            {showEditor ? "Hide Field Editor" : "Edit Audit Values"}
-          </Button>
-
-          <Button
-            onClick={runLiveAudit}
-            disabled={status === "analyzing"}
-            className="bg-indigo-600 hover:bg-indigo-700 text-white h-8 text-xs px-4 shadow-lg shadow-indigo-600/20"
-          >
-            {status === "analyzing" ? (
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-            ) : (
-              <PlayCircle className="w-4 h-4 mr-2" />
-            )}
-            {status === "analyzing" ? "Running LangGraph Swarm..." : "Run Live Audit"}
-          </Button>
-
-          <RecruiterDrawer />
-        </div>
-      </header>
-
-      {/* STRATEGY 1: Enterprise Portfolio Telemetry Bar */}
-      <div className="bg-slate-900/90 border-b border-slate-800 px-6 py-2 flex items-center justify-between text-xs">
-        <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-            <span className="font-semibold text-slate-200">Portfolio Batch Engine:</span>
-            <span className="text-slate-400 font-mono">1,248,500 Docs Audited (Q3 2026)</span>
+            <span className="font-semibold text-slate-200">Portfolio Engine:</span>
+            <span className="text-slate-400 font-mono">1.2M+ Docs (Q3 2026)</span>
           </div>
-          <span className="text-slate-700">|</span>
-          <div className="text-slate-400">
-            <span className="text-emerald-400 font-semibold font-mono">96.4%</span> Auto-Reconciled Clean
+          <span className="text-slate-700 hidden sm:inline">|</span>
+          <div className="text-slate-400 hidden sm:block">
+            <span className="text-emerald-400 font-semibold font-mono">96.4%</span> Auto-Approved
           </div>
-          <span className="text-slate-700">|</span>
-          <div className="text-amber-400">
-            <span className="font-semibold font-mono">3.6%</span> Exception Triage Active
+          <span className="text-slate-700 hidden sm:inline">|</span>
+          <div className="text-amber-400 hidden sm:block">
+            <span className="font-semibold font-mono">3.6%</span> Exception Desk
           </div>
         </div>
 
         <Badge variant="outline" className="text-slate-400 border-slate-700 font-mono text-[10px]">
-          ACTIVE QUEUE: FACILITY #4,182 (COBALT EQUIPMENT)
+          FACILITY #4,182: COBALT EQUIPMENT
         </Badge>
       </div>
 
-      {/* Purpose & Commercial Problem Banner */}
-      {showPurpose && (
-        <div className="bg-gradient-to-r from-slate-900 via-indigo-950/40 to-slate-900 border-b border-slate-800 px-6 py-2.5 flex items-center justify-between text-xs animate-in slide-in-from-top-1">
-          <div className="max-w-4xl space-y-1">
-            <div className="flex items-center gap-2">
-              <span className="font-semibold text-indigo-300">The Problem Solved:</span>
-              <span className="text-slate-300">
-                Commercial loan audits take 4–8 analyst hours per borrower to manually reconcile purchase orders, invoices, and bank payments against credit agreements.
-              </span>
-            </div>
-            <p className="text-[11px] text-slate-400">
-              <strong>How It Works:</strong> An agentic LangGraph swarm performs 3-way reconciliation in 2 seconds. Mathematical checks are executed in deterministic code (0% hallucination), while a fine-tuned GGUF model synthesizes findings with exact bounding-box evidence.
-            </p>
+      {/* Action Control Bar */}
+      <div className="bg-slate-900/60 border-b border-slate-800 px-4 md:px-6 py-2.5 flex flex-wrap items-center justify-between gap-3 text-xs">
+        {/* Scenario Selectors */}
+        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5">
+          <div className="flex items-center gap-1.5 text-slate-400 shrink-0 mr-1">
+            <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+            <span className="font-medium text-slate-300 hidden sm:inline">Scenarios:</span>
           </div>
-          <button
-            onClick={() => setShowPurpose(false)}
-            className="text-[11px] text-slate-500 hover:text-slate-300 ml-4 shrink-0"
-          >
-            Dismiss ✕
-          </button>
-        </div>
-      )}
-
-      {/* Recruiter Scenario Guidance Bar */}
-      <div className="bg-slate-900/60 border-b border-slate-800 px-6 py-2 flex items-center gap-4 text-xs">
-        <div className="flex items-center gap-2 text-slate-400 shrink-0">
-          <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-          <span className="font-medium text-slate-300">Test Scenarios:</span>
-        </div>
-        <div className="flex items-center gap-2">
           {(["tampering", "clean", "covenant_breach"] as ScenarioType[]).map((type) => (
             <button
               key={type}
               onClick={() => applyScenario(type)}
-              className={`px-3 py-1 rounded text-xs transition-colors border ${
+              className={`px-2.5 py-1 rounded text-xs transition-colors border whitespace-nowrap ${
                 selectedScenario === type
-                  ? "bg-indigo-600/20 border-indigo-500 text-indigo-200 font-medium"
+                  ? "bg-indigo-600/25 border-indigo-500 text-indigo-200 font-medium"
                   : "bg-slate-800/50 border-slate-700/60 text-slate-400 hover:text-slate-200"
               }`}
             >
@@ -280,11 +192,37 @@ export default function WorkspacePage() {
             </button>
           ))}
         </div>
+
+        {/* Execution Triggers */}
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowEditor(!showEditor)}
+            className="border-slate-700 bg-slate-800/80 hover:bg-slate-700 text-slate-200 text-xs h-8 px-2.5"
+          >
+            <SlidersHorizontal className="w-3.5 h-3.5 mr-1.5 text-indigo-400" />
+            {showEditor ? "Hide Editor" : "Edit Values"}
+          </Button>
+
+          <Button
+            onClick={runLiveAudit}
+            disabled={status === "analyzing"}
+            className="bg-indigo-600 hover:bg-indigo-700 text-white h-8 text-xs px-3.5 shadow-lg shadow-indigo-600/20 font-semibold"
+          >
+            {status === "analyzing" ? (
+              <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
+            ) : (
+              <PlayCircle className="w-3.5 h-3.5 mr-1.5" />
+            )}
+            {status === "analyzing" ? "Auditing..." : "Run Live Audit"}
+          </Button>
+        </div>
       </div>
 
-      {/* In-Browser Editable Values Bar */}
+      {/* In-Browser Editable Values Bar (Collapsible & Responsive Grid) */}
       {showEditor && (
-        <div className="bg-slate-900 border-b border-slate-800 px-6 py-3 transition-all animate-in slide-in-from-top-2">
+        <div className="bg-slate-900 border-b border-slate-800 px-4 md:px-6 py-3 transition-all animate-in slide-in-from-top-2">
           <div className="flex items-center justify-between mb-2">
             <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
               Interactive Value Injection (Updates Live Audit Payload)
@@ -293,10 +231,10 @@ export default function WorkspacePage() {
               onClick={() => applyScenario(selectedScenario)}
               className="text-[11px] text-slate-400 hover:text-slate-200 flex items-center gap-1"
             >
-              <RotateCcw className="w-3 h-3" /> Reset to Scenario Defaults
+              <RotateCcw className="w-3 h-3" /> Reset
             </button>
           </div>
-          <div className="grid grid-cols-4 gap-4 text-xs">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
             <div>
               <label className="block text-slate-400 text-[10px] mb-1">Purchase Order ($)</label>
               <input
@@ -337,26 +275,66 @@ export default function WorkspacePage() {
         </div>
       )}
 
-      {/* Main 3-Column Workspace */}
-      <ResizablePanelGroup className="flex-1 flex flex-row">
+      {/* MOBILE SEGMENTED TAB SWITCHER (< lg screens) */}
+      <div className="lg:hidden grid grid-cols-3 border-b border-slate-800 bg-slate-900/40 text-xs font-medium">
+        <button
+          onClick={() => setMobileTab("documents")}
+          className={`py-2.5 flex items-center justify-center gap-1.5 border-b-2 transition-colors ${
+            mobileTab === "documents"
+              ? "border-indigo-500 text-indigo-300 bg-slate-900"
+              : "border-transparent text-slate-400"
+          }`}
+        >
+          <FileText className="w-3.5 h-3.5" />
+          <span>Docs (3)</span>
+        </button>
 
-        {/* Panel 1: Document Tree */}
-        <ResizablePanel defaultSize={20} minSize={15}>
-          <div className="p-4 space-y-3 h-full overflow-y-auto border-r border-slate-800">
+        <button
+          onClick={() => setMobileTab("analysis")}
+          className={`py-2.5 flex items-center justify-center gap-1.5 border-b-2 transition-colors ${
+            mobileTab === "analysis"
+              ? "border-indigo-500 text-indigo-300 bg-slate-900"
+              : "border-transparent text-slate-400"
+          }`}
+        >
+          <Layers className="w-3.5 h-3.5" />
+          <span>Findings</span>
+          {status === "complete" && (
+            <span className={`w-1.5 h-1.5 rounded-full ${hasWireDiscrepancy ? "bg-amber-400" : "bg-emerald-400"}`} />
+          )}
+        </button>
+
+        <button
+          onClick={() => setMobileTab("evidence")}
+          className={`py-2.5 flex items-center justify-center gap-1.5 border-b-2 transition-colors ${
+            mobileTab === "evidence"
+              ? "border-indigo-500 text-indigo-300 bg-slate-900"
+              : "border-transparent text-slate-400"
+          }`}
+        >
+          <Eye className="w-3.5 h-3.5" />
+          <span>Evidence</span>
+        </button>
+      </div>
+
+      {/* MOBILE VIEW CONTAINER (< lg screens) */}
+      <div className="lg:hidden flex-1 overflow-y-auto p-4">
+        {/* Mobile Tab 1: Documents */}
+        {mobileTab === "documents" && (
+          <div className="space-y-3">
             <div className="flex items-center justify-between">
               <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-                Exception Triaged
+                Inflow Documents (Tap to View)
               </h3>
-              <span className="text-[10px] font-mono text-indigo-400">Click to View</span>
+              <span className="text-[10px] font-mono text-emerald-400">3 Ingested</span>
             </div>
 
-            {/* PO Item */}
             <div
-              onClick={() => setActiveDoc("po")}
+              onClick={() => { setActiveDoc("po"); setMobileTab("evidence"); }}
               className={`p-3 rounded-lg border text-xs flex justify-between items-center cursor-pointer transition-all ${
                 activeDoc === "po"
-                  ? "bg-slate-800/90 border-indigo-500 shadow-sm shadow-indigo-950"
-                  : "bg-slate-900 border-slate-800 hover:border-slate-700"
+                  ? "bg-slate-800/90 border-indigo-500 shadow-sm"
+                  : "bg-slate-900 border-slate-800"
               }`}
             >
               <div>
@@ -365,18 +343,15 @@ export default function WorkspacePage() {
                 </span>
                 <span className="text-[10px] font-mono text-slate-400">${auditInputs.poAmount}</span>
               </div>
-              <Badge className="bg-emerald-950/80 text-emerald-400 border border-emerald-800/40 text-[10px]">
-                MATCH
-              </Badge>
+              <Badge className="bg-emerald-950/80 text-emerald-400 border border-emerald-800/40 text-[10px]">MATCH</Badge>
             </div>
 
-            {/* Invoice Item */}
             <div
-              onClick={() => setActiveDoc("invoice")}
+              onClick={() => { setActiveDoc("invoice"); setMobileTab("evidence"); }}
               className={`p-3 rounded-lg border text-xs flex justify-between items-center cursor-pointer transition-all ${
                 activeDoc === "invoice"
-                  ? "bg-slate-800/90 border-indigo-500 shadow-sm shadow-indigo-950"
-                  : "bg-slate-900 border-slate-800 hover:border-slate-700"
+                  ? "bg-slate-800/90 border-indigo-500 shadow-sm"
+                  : "bg-slate-900 border-slate-800"
               }`}
             >
               <div>
@@ -385,205 +360,133 @@ export default function WorkspacePage() {
                 </span>
                 <span className="text-[10px] font-mono text-slate-400">${auditInputs.invAmount}</span>
               </div>
-              <Badge className="bg-emerald-950/80 text-emerald-400 border border-emerald-800/40 text-[10px]">
-                MATCH
-              </Badge>
+              <Badge className="bg-emerald-950/80 text-emerald-400 border border-emerald-800/40 text-[10px]">MATCH</Badge>
             </div>
 
-            {/* Bank Payment Item */}
             <div
-              onClick={() => setActiveDoc("payment")}
+              onClick={() => { setActiveDoc("payment"); setMobileTab("evidence"); }}
               className={`p-3 rounded-lg border text-xs flex justify-between items-center cursor-pointer transition-all ${
                 activeDoc === "payment"
-                  ? "bg-slate-800/90 border-indigo-500 shadow-sm shadow-indigo-950"
+                  ? "bg-slate-800/90 border-indigo-500 shadow-sm"
                   : hasWireDiscrepancy
                   ? "bg-slate-900 border-amber-800/60"
-                  : "bg-slate-900 border-slate-800 hover:border-slate-700"
+                  : "bg-slate-900 border-slate-800"
               }`}
             >
               <div>
                 <span className="block font-medium flex items-center gap-1.5">
-                  {hasWireDiscrepancy ? (
-                    <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
-                  ) : (
-                    <FileText className="w-3.5 h-3.5 text-slate-400" />
-                  )}
+                  {hasWireDiscrepancy ? <AlertTriangle className="w-3.5 h-3.5 text-amber-400" /> : <FileText className="w-3.5 h-3.5 text-slate-400" />}
                   PAY-2026-4412.pdf
                 </span>
-                <span
-                  className={`text-[10px] font-mono ${
-                    hasWireDiscrepancy ? "text-amber-400 font-semibold" : "text-slate-400"
-                  }`}
-                >
+                <span className={`text-[10px] font-mono ${hasWireDiscrepancy ? "text-amber-400 font-semibold" : "text-slate-400"}`}>
                   ${auditInputs.payAmount}
                 </span>
               </div>
-              <Badge
-                className={
-                  hasWireDiscrepancy
-                    ? "bg-amber-950/80 text-amber-400 border border-amber-800/40 text-[10px]"
-                    : "bg-emerald-950/80 text-emerald-400 border border-emerald-800/40 text-[10px]"
-                }
-              >
+              <Badge className={hasWireDiscrepancy ? "bg-amber-950/80 text-amber-400 border border-amber-800/40 text-[10px]" : "bg-emerald-950/80 text-emerald-400 border border-emerald-800/40 text-[10px]"}>
                 {hasWireDiscrepancy ? "VARIANCE" : "MATCH"}
               </Badge>
             </div>
 
-            <div className="pt-4 border-t border-slate-800/80">
+            <div className="pt-3 border-t border-slate-800/80">
               <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 block mb-2">
-                Compliance Certificate
+                Compliance Certificate Metrics
               </span>
-              <div className="p-2.5 bg-slate-900/60 rounded border border-slate-800/60 text-[11px] space-y-1">
+              <div className="p-3 bg-slate-900/60 rounded border border-slate-800/60 text-xs space-y-1.5">
                 <div className="flex justify-between text-slate-400">
                   <span>Borrower EBITDA:</span>
                   <span className="font-mono text-slate-200">${auditInputs.ebitda}</span>
                 </div>
                 <div className="flex justify-between text-slate-400">
                   <span>Covenant FCCR:</span>
-                  <span
-                    className={`font-mono font-medium ${
-                      isCovenantBreached ? "text-red-400" : "text-emerald-400"
-                    }`}
-                  >
+                  <span className={`font-mono font-medium ${isCovenantBreached ? "text-red-400" : "text-emerald-400"}`}>
                     {fccr.toFixed(2)}x (Min 1.15x)
                   </span>
                 </div>
               </div>
             </div>
           </div>
-        </ResizablePanel>
+        )}
 
-        <ResizableHandle />
-
-        {/* Panel 2: Reconciliation Findings */}
-        <ResizablePanel defaultSize={45} minSize={30}>
-          <div className="p-6 space-y-6 overflow-y-auto h-full">
+        {/* Mobile Tab 2: Analysis Findings */}
+        {mobileTab === "analysis" && (
+          <div className="space-y-4">
             {status === "idle" && (
-              <div className="flex flex-col items-center justify-center h-full text-slate-500 text-sm space-y-2">
+              <div className="flex flex-col items-center justify-center p-8 text-center text-slate-500 text-sm space-y-2">
                 <ShieldCheck className="w-10 h-10 text-slate-700" />
                 <p className="font-medium text-slate-400">Ready to audit {selectedScenario.replace("_", " ")}</p>
-                <p className="text-xs text-slate-500">
-                  Click &quot;Run Live Audit&quot; to trigger the LangGraph swarm on AWS GPU.
-                </p>
+                <p className="text-xs text-slate-500">Tap &quot;Run Live Audit&quot; above to execute the LangGraph swarm.</p>
               </div>
             )}
 
             {status === "analyzing" && (
-              <div className="flex flex-col items-center justify-center h-full text-indigo-400 space-y-4">
+              <div className="flex flex-col items-center justify-center p-8 text-indigo-400 space-y-3">
                 <Loader2 className="w-8 h-8 animate-spin" />
-                <div className="text-center">
-                  <p className="text-sm font-medium">Executing LangGraph Multi-Agent Swarm...</p>
-                  <p className="text-xs text-slate-500 mt-1">
-                    Deterministic Math Node → Fine-Tuned GGUF Synthesis on Tesla T4
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {status === "error" && (
-              <div className="flex flex-col items-center justify-center h-full text-red-400 text-sm space-y-2">
-                <AlertTriangle className="w-8 h-8 text-red-500" />
-                <p className="font-medium">Inference endpoint communication failed.</p>
-                <p className="text-xs text-slate-500">Verify AWS EC2 instance is active at 52.90.159.170.</p>
+                <p className="text-sm font-medium">Executing LangGraph Multi-Agent Swarm...</p>
+                <p className="text-xs text-slate-500">Deterministic Math Node → Tesla T4 GPU</p>
               </div>
             )}
 
             {status === "complete" && (
-              <div className="space-y-4 animate-in fade-in zoom-in-95 duration-300">
+              <div className="space-y-4 animate-in fade-in duration-300">
                 {hasWireDiscrepancy ? (
                   <Card className="bg-amber-950/20 border-amber-500/40 text-slate-100">
                     <CardHeader className="pb-2">
                       <CardTitle className="text-amber-400 text-sm flex items-center gap-2">
-                        <AlertTriangle className="w-4 h-4" /> Verified Document Discrepancy Found
+                        <AlertTriangle className="w-4 h-4" /> Discrepancy Found
                       </CardTitle>
                     </CardHeader>
-                    <CardContent className="space-y-3 text-xs">
+                    <CardContent className="space-y-2 text-xs">
                       <p className="text-slate-300">
-                        Bank wire payment exceeds purchase order and invoice totals by{" "}
-                        <strong className="text-amber-300">
-                          ${variance.toLocaleString("en-US", { minimumFractionDigits: 2 })}
-                        </strong>
-                        .
+                        Payment exceeds PO and invoice by <strong className="text-amber-300">${variance.toLocaleString("en-US", { minimumFractionDigits: 2 })}</strong>.
                       </p>
-                      <div className="grid grid-cols-3 gap-2 bg-slate-900/90 p-3 rounded border border-slate-800 text-[11px]">
-                        <div>
-                          <span className="text-slate-500 block">Purchase Order</span>
-                          <span className="font-mono">${auditInputs.poAmount}</span>
-                        </div>
-                        <div>
-                          <span className="text-slate-500 block">Invoice</span>
-                          <span className="font-mono">${auditInputs.invAmount}</span>
-                        </div>
-                        <div className="text-amber-400 font-bold">
-                          <span className="text-slate-500 block font-normal">Recorded Payment</span>
-                          <span className="font-mono">${auditInputs.payAmount}</span>
-                        </div>
-                      </div>
+                      <Button
+                        size="sm"
+                        onClick={() => { setActiveDoc("payment"); setMobileTab("evidence"); }}
+                        className="w-full mt-2 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-xs h-8"
+                      >
+                        <Eye className="w-3.5 h-3.5 mr-1.5" /> View Highlighted Evidence in Receipt
+                      </Button>
                     </CardContent>
                   </Card>
                 ) : (
                   <Card className="bg-emerald-950/20 border-emerald-500/40 text-slate-100">
                     <CardHeader className="pb-2">
                       <CardTitle className="text-emerald-400 text-sm flex items-center gap-2">
-                        <CheckCircle2 className="w-4 h-4" /> Three-Way Reconciliation Verified Clean
+                        <CheckCircle2 className="w-4 h-4" /> Three-Way Match Verified Clean
                       </CardTitle>
                     </CardHeader>
-                    <CardContent className="space-y-2 text-xs">
-                      <p className="text-slate-300">
-                        Purchase Order, Commercial Invoice, and Bank Payment wire amounts match at{" "}
-                        <strong className="text-emerald-300">${auditInputs.payAmount}</strong>.
-                      </p>
+                    <CardContent className="text-xs">
+                      <p className="text-slate-300">All 3 documents match at ${auditInputs.payAmount}.</p>
                     </CardContent>
                   </Card>
                 )}
 
-                <Card
-                  className={`text-slate-100 ${
-                    isCovenantBreached
-                      ? "bg-red-950/20 border-red-500/40"
-                      : "bg-slate-900/50 border-slate-800"
-                  }`}
-                >
+                <Card className={`text-slate-100 ${isCovenantBreached ? "bg-red-950/20 border-red-500/40" : "bg-slate-900/50 border-slate-800"}`}>
                   <CardHeader className="pb-2">
-                    <CardTitle
-                      className={`text-sm flex items-center gap-2 ${
-                        isCovenantBreached ? "text-red-400" : "text-slate-200"
-                      }`}
-                    >
-                      {isCovenantBreached ? (
-                        <AlertTriangle className="w-4 h-4 text-red-400" />
-                      ) : (
-                        <ShieldCheck className="w-4 h-4 text-emerald-400" />
-                      )}
-                      Covenant Compliance (Fixed Charge Coverage Ratio)
+                    <CardTitle className={`text-sm flex items-center gap-2 ${isCovenantBreached ? "text-red-400" : "text-slate-200"}`}>
+                      {isCovenantBreached ? <AlertTriangle className="w-4 h-4 text-red-400" /> : <ShieldCheck className="w-4 h-4 text-emerald-400" />}
+                      Fixed Charge Coverage Ratio (FCCR)
                     </CardTitle>
                   </CardHeader>
-                  <CardContent className="text-xs space-y-2">
-                    <div className="flex justify-between items-center">
-                      <span className="text-slate-400">Calculated FCCR:</span>
-                      <span
-                        className={`font-mono font-bold text-sm ${
-                          isCovenantBreached ? "text-red-400" : "text-emerald-400"
-                        }`}
-                      >
+                  <CardContent className="text-xs flex justify-between items-center">
+                    <div>
+                      <span className="text-slate-400 block">Calculated Ratio:</span>
+                      <span className={`font-mono font-bold text-sm ${isCovenantBreached ? "text-red-400" : "text-emerald-400"}`}>
                         {fccr.toFixed(2)}x
                       </span>
                     </div>
-                    <div className="flex justify-between items-center text-[11px] text-slate-500">
-                      <span>Covenant Threshold:</span>
-                      <span className="font-mono">1.15x Required Minimum</span>
+                    <div className="text-right text-[11px] text-slate-500">
+                      <span>Threshold:</span>
+                      <span className="block font-mono">1.15x Min</span>
                     </div>
                   </CardContent>
                 </Card>
 
                 {auditResult?.candidate_assertions?.[0]?.summary && (
-                  <div className="bg-slate-900/80 rounded-lg border border-slate-800 p-4 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-semibold uppercase tracking-wider text-indigo-400">
-                        Fine-Tuned GGUF Synthesis (covenant-auditor)
-                      </span>
-                      <span className="text-[10px] font-mono text-slate-500">Token Cost: $0.00</span>
-                    </div>
+                  <div className="bg-slate-900 p-3.5 rounded-lg border border-slate-800 space-y-1.5">
+                    <span className="text-[10px] font-semibold uppercase tracking-wider text-indigo-400 block">
+                      Fine-Tuned GGUF Synthesis
+                    </span>
                     <p className="text-xs text-slate-300 leading-relaxed italic">
                       &quot;{auditResult.candidate_assertions[0].summary}&quot;
                     </p>
@@ -592,28 +495,249 @@ export default function WorkspacePage() {
               </div>
             )}
           </div>
-        </ResizablePanel>
+        )}
 
-        <ResizableHandle />
+        {/* Mobile Tab 3: Document Evidence Viewer */}
+        {mobileTab === "evidence" && (
+          <div className="space-y-3">
+            <BoundingBoxViewer
+              activeDoc={activeDoc}
+              poAmount={auditInputs.poAmount}
+              invAmount={auditInputs.invAmount}
+              payAmount={auditInputs.payAmount}
+              hasDiscrepancy={hasWireDiscrepancy}
+              status={status}
+            />
+          </div>
+        )}
+      </div>
 
-        {/* Panel 3: Dynamic Multi-Document Viewer */}
-        <ResizablePanel defaultSize={35} minSize={25}>
-          <BoundingBoxViewer
-            activeDoc={activeDoc}
-            poAmount={auditInputs.poAmount}
-            invAmount={auditInputs.invAmount}
-            payAmount={auditInputs.payAmount}
-            hasDiscrepancy={hasWireDiscrepancy}
-            status={status}
-          />
-        </ResizablePanel>
-      </ResizablePanelGroup>
+      {/* DESKTOP 3-COLUMN WORKSPACE (>= lg screens) */}
+      <div className="hidden lg:flex flex-1 overflow-hidden">
+        <ResizablePanelGroup className="flex-1 flex flex-row">
 
-      {/* STRATEGY 3: Enterprise Portfolio Scale Modal */}
-      <PortfolioScaleModal
-        isOpen={showScaleModal}
-        onClose={() => setShowScaleModal(false)}
-      />
+          {/* Panel 1: Inflow Document Tree */}
+          <ResizablePanel defaultSize={20} minSize={15}>
+            <div className="p-4 space-y-3 h-full overflow-y-auto border-r border-slate-800">
+              <div className="flex items-center justify-between">
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                  Inflow Documents
+                </h3>
+                <span className="text-[10px] font-mono text-indigo-400">Click to View</span>
+              </div>
+
+              <div
+                onClick={() => setActiveDoc("po")}
+                className={`p-3 rounded-lg border text-xs flex justify-between items-center cursor-pointer transition-all ${
+                  activeDoc === "po"
+                    ? "bg-slate-800/90 border-indigo-500 shadow-sm shadow-indigo-950"
+                    : "bg-slate-900 border-slate-800 hover:border-slate-700"
+                }`}
+              >
+                <div>
+                  <span className="block font-medium flex items-center gap-1.5">
+                    <FileText className="w-3.5 h-3.5 text-slate-400" /> PO-2026-8801.pdf
+                  </span>
+                  <span className="text-[10px] font-mono text-slate-400">${auditInputs.poAmount}</span>
+                </div>
+                <Badge className="bg-emerald-950/80 text-emerald-400 border border-emerald-800/40 text-[10px]">MATCH</Badge>
+              </div>
+
+              <div
+                onClick={() => setActiveDoc("invoice")}
+                className={`p-3 rounded-lg border text-xs flex justify-between items-center cursor-pointer transition-all ${
+                  activeDoc === "invoice"
+                    ? "bg-slate-800/90 border-indigo-500 shadow-sm shadow-indigo-950"
+                    : "bg-slate-900 border-slate-800 hover:border-slate-700"
+                }`}
+              >
+                <div>
+                  <span className="block font-medium flex items-center gap-1.5">
+                    <FileText className="w-3.5 h-3.5 text-slate-400" /> INV-2026-9904.pdf
+                  </span>
+                  <span className="text-[10px] font-mono text-slate-400">${auditInputs.invAmount}</span>
+                </div>
+                <Badge className="bg-emerald-950/80 text-emerald-400 border border-emerald-800/40 text-[10px]">MATCH</Badge>
+              </div>
+
+              <div
+                onClick={() => setActiveDoc("payment")}
+                className={`p-3 rounded-lg border text-xs flex justify-between items-center cursor-pointer transition-all ${
+                  activeDoc === "payment"
+                    ? "bg-slate-800/90 border-indigo-500 shadow-sm shadow-indigo-950"
+                    : hasWireDiscrepancy
+                    ? "bg-slate-900 border-amber-800/60"
+                    : "bg-slate-900 border-slate-800 hover:border-slate-700"
+                }`}
+              >
+                <div>
+                  <span className="block font-medium flex items-center gap-1.5">
+                    {hasWireDiscrepancy ? <AlertTriangle className="w-3.5 h-3.5 text-amber-400" /> : <FileText className="w-3.5 h-3.5 text-slate-400" />}
+                    PAY-2026-4412.pdf
+                  </span>
+                  <span className={`text-[10px] font-mono ${hasWireDiscrepancy ? "text-amber-400 font-semibold" : "text-slate-400"}`}>
+                    ${auditInputs.payAmount}
+                  </span>
+                </div>
+                <Badge className={hasWireDiscrepancy ? "bg-amber-950/80 text-amber-400 border border-amber-800/40 text-[10px]" : "bg-emerald-950/80 text-emerald-400 border border-emerald-800/40 text-[10px]"}>
+                  {hasWireDiscrepancy ? "VARIANCE" : "MATCH"}
+                </Badge>
+              </div>
+
+              <div className="pt-4 border-t border-slate-800/80">
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 block mb-2">
+                  Compliance Certificate
+                </span>
+                <div className="p-2.5 bg-slate-900/60 rounded border border-slate-800/60 text-[11px] space-y-1">
+                  <div className="flex justify-between text-slate-400">
+                    <span>Borrower EBITDA:</span>
+                    <span className="font-mono text-slate-200">${auditInputs.ebitda}</span>
+                  </div>
+                  <div className="flex justify-between text-slate-400">
+                    <span>Covenant FCCR:</span>
+                    <span className={`font-mono font-medium ${isCovenantBreached ? "text-red-400" : "text-emerald-400"}`}>
+                      {fccr.toFixed(2)}x (Min 1.15x)
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </ResizablePanel>
+
+          <ResizableHandle />
+
+          {/* Panel 2: Findings & Audit Memo */}
+          <ResizablePanel defaultSize={45} minSize={30}>
+            <div className="p-6 space-y-6 overflow-y-auto h-full">
+              {status === "idle" && (
+                <div className="flex flex-col items-center justify-center h-full text-slate-500 text-sm space-y-2">
+                  <ShieldCheck className="w-10 h-10 text-slate-700" />
+                  <p className="font-medium text-slate-400">Ready to audit {selectedScenario.replace("_", " ")}</p>
+                  <p className="text-xs text-slate-500">Click &quot;Run Live Audit&quot; to execute the LangGraph swarm on AWS GPU.</p>
+                </div>
+              )}
+
+              {status === "analyzing" && (
+                <div className="flex flex-col items-center justify-center h-full text-indigo-400 space-y-4">
+                  <Loader2 className="w-8 h-8 animate-spin" />
+                  <div className="text-center">
+                    <p className="text-sm font-medium">Executing LangGraph Multi-Agent Swarm...</p>
+                    <p className="text-xs text-slate-500 mt-1">Deterministic Math Node → Tesla T4 GPU</p>
+                  </div>
+                </div>
+              )}
+
+              {status === "error" && (
+                <div className="flex flex-col items-center justify-center h-full text-red-400 text-sm space-y-2">
+                  <AlertTriangle className="w-8 h-8 text-red-500" />
+                  <p className="font-medium">Inference endpoint communication failed.</p>
+                  <p className="text-xs text-slate-500">Verify AWS EC2 instance is active at 52.90.159.170.</p>
+                </div>
+              )}
+
+              {status === "complete" && (
+                <div className="space-y-4 animate-in fade-in zoom-in-95 duration-300">
+                  {hasWireDiscrepancy ? (
+                    <Card className="bg-amber-950/20 border-amber-500/40 text-slate-100">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-amber-400 text-sm flex items-center gap-2">
+                          <AlertTriangle className="w-4 h-4" /> Verified Document Discrepancy Found
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-3 text-xs">
+                        <p className="text-slate-300">
+                          Bank wire payment exceeds purchase order and invoice totals by{" "}
+                          <strong className="text-amber-300">
+                            ${variance.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                          </strong>
+                          .
+                        </p>
+                        <div className="grid grid-cols-3 gap-2 bg-slate-900/90 p-3 rounded border border-slate-800 text-[11px]">
+                          <div>
+                            <span className="text-slate-500 block">Purchase Order</span>
+                            <span className="font-mono">${auditInputs.poAmount}</span>
+                          </div>
+                          <div>
+                            <span className="text-slate-500 block">Invoice</span>
+                            <span className="font-mono">${auditInputs.invAmount}</span>
+                          </div>
+                          <div className="text-amber-400 font-bold">
+                            <span className="text-slate-500 block font-normal">Recorded Payment</span>
+                            <span className="font-mono">${auditInputs.payAmount}</span>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ) : (
+                    <Card className="bg-emerald-950/20 border-emerald-500/40 text-slate-100">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-emerald-400 text-sm flex items-center gap-2">
+                          <CheckCircle2 className="w-4 h-4" /> Three-Way Reconciliation Verified Clean
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-2 text-xs">
+                        <p className="text-slate-300">
+                          Purchase Order, Commercial Invoice, and Bank Payment wire amounts match at{" "}
+                          <strong className="text-emerald-300">${auditInputs.payAmount}</strong>.
+                        </p>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  <Card className={`text-slate-100 ${isCovenantBreached ? "bg-red-950/20 border-red-500/40" : "bg-slate-900/50 border-slate-800"}`}>
+                    <CardHeader className="pb-2">
+                      <CardTitle className={`text-sm flex items-center gap-2 ${isCovenantBreached ? "text-red-400" : "text-slate-200"}`}>
+                        {isCovenantBreached ? <AlertTriangle className="w-4 h-4 text-red-400" /> : <ShieldCheck className="w-4 h-4 text-emerald-400" />}
+                        Covenant Compliance (Fixed Charge Coverage Ratio)
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="text-xs space-y-2">
+                      <div className="flex justify-between items-center">
+                        <span className="text-slate-400">Calculated FCCR:</span>
+                        <span className={`font-mono font-bold text-sm ${isCovenantBreached ? "text-red-400" : "text-emerald-400"}`}>
+                          {fccr.toFixed(2)}x
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center text-[11px] text-slate-500">
+                        <span>Covenant Threshold:</span>
+                        <span className="font-mono">1.15x Required Minimum</span>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {auditResult?.candidate_assertions?.[0]?.summary && (
+                    <div className="bg-slate-900/80 rounded-lg border border-slate-800 p-4 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-semibold uppercase tracking-wider text-indigo-400">
+                          Fine-Tuned GGUF Synthesis (covenant-auditor)
+                        </span>
+                        <span className="text-[10px] font-mono text-slate-500">Token Cost: $0.00</span>
+                      </div>
+                      <p className="text-xs text-slate-300 leading-relaxed italic">
+                        &quot;{auditResult.candidate_assertions[0].summary}&quot;
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </ResizablePanel>
+
+          <ResizableHandle />
+
+          {/* Panel 3: Dynamic PDF Evidence Viewer */}
+          <ResizablePanel defaultSize={35} minSize={25}>
+            <BoundingBoxViewer
+              activeDoc={activeDoc}
+              poAmount={auditInputs.poAmount}
+              invAmount={auditInputs.invAmount}
+              payAmount={auditInputs.payAmount}
+              hasDiscrepancy={hasWireDiscrepancy}
+              status={status}
+            />
+          </ResizablePanel>
+        </ResizablePanelGroup>
+      </div>
 
     </div>
   );
