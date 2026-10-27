@@ -1,5 +1,7 @@
-import { redirect } from "next/navigation";
-
 export default function Home() {
-  redirect("/dashboard");
+  return (
+    <div className="flex-1 flex items-center justify-center text-slate-400">
+      Business Case & Landing Page (Coming Next)
+    </div>
+  );
 }
