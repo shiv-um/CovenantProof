@@ -5,9 +5,8 @@ import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/componen
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { BoundingBoxViewer } from "@/components/pdf/BoundingBoxViewer";
+import { BoundingBoxViewer, ActiveDocType } from "@/components/pdf/BoundingBoxViewer";
 import { RecruiterDrawer } from "@/components/dashboard/RecruiterDrawer";
-import { UploadModal } from "@/components/dashboard/UploadModal";
 import {
   PlayCircle,
   Loader2,
@@ -17,7 +16,9 @@ import {
   RotateCcw,
   Sparkles,
   ShieldCheck,
-  UploadCloud,
+  FileText,
+  Info,
+  Smartphone
 } from "lucide-react";
 
 type ScenarioType = "tampering" | "clean" | "covenant_breach";
@@ -77,8 +78,9 @@ const SCENARIOS: Record<ScenarioType, { title: string; subtitle: string; inputs:
 export default function WorkspacePage() {
   const [selectedScenario, setSelectedScenario] = useState<ScenarioType>("tampering");
   const [auditInputs, setAuditInputs] = useState<AuditInputs>(SCENARIOS.tampering.inputs);
+  const [activeDoc, setActiveDoc] = useState<ActiveDocType>("payment");
   const [showEditor, setShowEditor] = useState<boolean>(false);
-  const [isUploadOpen, setIsUploadOpen] = useState<boolean>(false);
+  const [showPurpose, setShowPurpose] = useState<boolean>(true);
   const [status, setStatus] = useState<"idle" | "analyzing" | "complete" | "error">("idle");
   const [auditResult, setAuditResult] = useState<any>(null);
 
@@ -87,6 +89,7 @@ export default function WorkspacePage() {
     setAuditInputs(SCENARIOS[type].inputs);
     setStatus("idle");
     setAuditResult(null);
+    setActiveDoc("payment");
   };
 
   const runLiveAudit = async () => {
@@ -109,10 +112,7 @@ export default function WorkspacePage() {
 
       const res = await fetch("/api/proxy/api/v1/audits", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-        },
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
         body: JSON.stringify(payload),
       });
 
@@ -144,6 +144,14 @@ export default function WorkspacePage() {
 
   return (
     <div className="h-screen flex flex-col bg-slate-950 text-slate-100 font-sans">
+
+      {/* Mobile Screen Advisory */}
+      <div className="lg:hidden bg-amber-500/10 border-b border-amber-500/30 px-4 py-2 flex items-center justify-between text-[11px] text-amber-300">
+        <span className="flex items-center gap-1.5">
+          <Smartphone className="w-3.5 h-3.5" /> Best experienced on Desktop for multi-pane audit verification.
+        </span>
+      </div>
+
       {/* Top Header */}
       <header className="h-14 border-b border-slate-800 flex items-center justify-between px-6 bg-slate-900/60 backdrop-blur">
         <div className="flex items-center gap-3">
@@ -154,6 +162,16 @@ export default function WorkspacePage() {
         </div>
 
         <div className="flex items-center gap-3">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowPurpose(!showPurpose)}
+            className="text-slate-400 hover:text-slate-200 text-xs h-8"
+          >
+            <Info className="w-3.5 h-3.5 mr-1" />
+            {showPurpose ? "Hide Purpose" : "What is this?"}
+          </Button>
+
           <Button
             variant="outline"
             size="sm"
@@ -181,8 +199,31 @@ export default function WorkspacePage() {
         </div>
       </header>
 
+      {/* Purpose & Commercial Problem Banner (Solves Points 2, 3 & 10) */}
+      {showPurpose && (
+        <div className="bg-gradient-to-r from-slate-900 via-indigo-950/40 to-slate-900 border-b border-slate-800 px-6 py-3 flex items-center justify-between text-xs animate-in slide-in-from-top-1">
+          <div className="max-w-4xl space-y-1">
+            <div className="flex items-center gap-2">
+              <span className="font-semibold text-indigo-300">The Problem Solved:</span>
+              <span className="text-slate-300">
+                Commercial loan audits take 4–8 analyst hours per borrower to manually reconcile purchase orders, invoices, and bank payments against credit agreements.
+              </span>
+            </div>
+            <p className="text-[11px] text-slate-400">
+              <strong>How It Works:</strong> An agentic LangGraph swarm performs a 3-way reconciliation in 2 seconds. Mathematical checks are executed in deterministic code (0% hallucination), while a fine-tuned GGUF model synthesizes findings with exact bounding-box evidence.
+            </p>
+          </div>
+          <button
+            onClick={() => setShowPurpose(false)}
+            className="text-[11px] text-slate-500 hover:text-slate-300 ml-4 shrink-0"
+          >
+            Dismiss ✕
+          </button>
+        </div>
+      )}
+
       {/* Recruiter Scenario Guidance Bar */}
-      <div className="bg-slate-900/90 border-b border-slate-800 px-6 py-2.5 flex items-center gap-4 text-xs">
+      <div className="bg-slate-900/90 border-b border-slate-800 px-6 py-2 flex items-center gap-4 text-xs">
         <div className="flex items-center gap-2 text-slate-400 shrink-0">
           <Sparkles className="w-3.5 h-3.5 text-amber-400" />
           <span className="font-medium text-slate-300">Recruiter Test Scenarios:</span>
@@ -204,7 +245,7 @@ export default function WorkspacePage() {
         </div>
       </div>
 
-      {/* In-Browser Editable Values Bar (Collapsible) */}
+      {/* In-Browser Editable Values Bar */}
       {showEditor && (
         <div className="bg-slate-900 border-b border-slate-800 px-6 py-3 transition-all animate-in slide-in-from-top-2">
           <div className="flex items-center justify-between mb-2">
@@ -261,26 +302,30 @@ export default function WorkspacePage() {
 
       {/* Main 3-Column Workspace */}
       <ResizablePanelGroup className="flex-1 flex flex-row">
-        {/* Panel 1: Document Tree */}
+
+        {/* Panel 1: Interactive Document Tree (Fixes Point 11: Clickable Docs) */}
         <ResizablePanel defaultSize={20} minSize={15}>
           <div className="p-4 space-y-3 h-full overflow-y-auto border-r border-slate-800">
             <div className="flex items-center justify-between">
               <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400">
                 Ingested Documents
               </h3>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setIsUploadOpen(true)}
-                className="h-6 text-[10px] px-2 border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-300"
-              >
-                <UploadCloud className="w-3 h-3 mr-1 text-indigo-400" />
-                Upload
-              </Button>
+              <span className="text-[10px] font-mono text-indigo-400">Click to View</span>
             </div>
-            <div className="p-3 bg-slate-900 rounded-lg border border-slate-800 text-xs flex justify-between items-center">
+
+            {/* PO Document Item */}
+            <div
+              onClick={() => setActiveDoc("po")}
+              className={`p-3 rounded-lg border text-xs flex justify-between items-center cursor-pointer transition-all ${
+                activeDoc === "po"
+                  ? "bg-slate-800/90 border-indigo-500 shadow-sm shadow-indigo-950"
+                  : "bg-slate-900 border-slate-800 hover:border-slate-700"
+              }`}
+            >
               <div>
-                <span className="block font-medium">📄 PO-2026-8801.pdf</span>
+                <span className="block font-medium flex items-center gap-1.5">
+                  <FileText className="w-3.5 h-3.5 text-slate-400" /> PO-2026-8801.pdf
+                </span>
                 <span className="text-[10px] font-mono text-slate-400">${auditInputs.poAmount}</span>
               </div>
               <Badge className="bg-emerald-950/80 text-emerald-400 border border-emerald-800/40 text-[10px]">
@@ -288,9 +333,19 @@ export default function WorkspacePage() {
               </Badge>
             </div>
 
-            <div className="p-3 bg-slate-900 rounded-lg border border-slate-800 text-xs flex justify-between items-center">
+            {/* Invoice Document Item */}
+            <div
+              onClick={() => setActiveDoc("invoice")}
+              className={`p-3 rounded-lg border text-xs flex justify-between items-center cursor-pointer transition-all ${
+                activeDoc === "invoice"
+                  ? "bg-slate-800/90 border-indigo-500 shadow-sm shadow-indigo-950"
+                  : "bg-slate-900 border-slate-800 hover:border-slate-700"
+              }`}
+            >
               <div>
-                <span className="block font-medium">📄 INV-2026-9904.pdf</span>
+                <span className="block font-medium flex items-center gap-1.5">
+                  <FileText className="w-3.5 h-3.5 text-slate-400" /> INV-2026-9904.pdf
+                </span>
                 <span className="text-[10px] font-mono text-slate-400">${auditInputs.invAmount}</span>
               </div>
               <Badge className="bg-emerald-950/80 text-emerald-400 border border-emerald-800/40 text-[10px]">
@@ -298,16 +353,25 @@ export default function WorkspacePage() {
               </Badge>
             </div>
 
+            {/* Bank Payment Document Item */}
             <div
-              className={`p-3 rounded-lg border text-xs flex justify-between items-center transition-all ${
-                hasWireDiscrepancy
-                  ? "bg-slate-900 border-amber-800/60 shadow-sm shadow-amber-950"
-                  : "bg-slate-900 border-slate-800"
+              onClick={() => setActiveDoc("payment")}
+              className={`p-3 rounded-lg border text-xs flex justify-between items-center cursor-pointer transition-all ${
+                activeDoc === "payment"
+                  ? "bg-slate-800/90 border-indigo-500 shadow-sm shadow-indigo-950"
+                  : hasWireDiscrepancy
+                  ? "bg-slate-900 border-amber-800/60"
+                  : "bg-slate-900 border-slate-800 hover:border-slate-700"
               }`}
             >
               <div>
-                <span className="block font-medium">
-                  {hasWireDiscrepancy ? "⚠️ PAY-2026-4412.pdf" : "📄 PAY-2026-4412.pdf"}
+                <span className="block font-medium flex items-center gap-1.5">
+                  {hasWireDiscrepancy ? (
+                    <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
+                  ) : (
+                    <FileText className="w-3.5 h-3.5 text-slate-400" />
+                  )}
+                  PAY-2026-4412.pdf
                 </span>
                 <span
                   className={`text-[10px] font-mono ${
@@ -389,7 +453,6 @@ export default function WorkspacePage() {
 
             {status === "complete" && (
               <div className="space-y-4 animate-in fade-in zoom-in-95 duration-300">
-                {/* 3-Way Match Result */}
                 {hasWireDiscrepancy ? (
                   <Card className="bg-amber-950/20 border-amber-500/40 text-slate-100">
                     <CardHeader className="pb-2">
@@ -437,7 +500,6 @@ export default function WorkspacePage() {
                   </Card>
                 )}
 
-                {/* Covenant Ratio Result */}
                 <Card
                   className={`text-slate-100 ${
                     isCovenantBreached
@@ -477,7 +539,6 @@ export default function WorkspacePage() {
                   </CardContent>
                 </Card>
 
-                {/* Fine-Tuned Local LLM Audit Memo */}
                 {auditResult?.candidate_assertions?.[0]?.summary && (
                   <div className="bg-slate-900/80 rounded-lg border border-slate-800 p-4 space-y-2">
                     <div className="flex items-center justify-between">
@@ -498,36 +559,18 @@ export default function WorkspacePage() {
 
         <ResizableHandle />
 
-        {/* Panel 3: Dynamic PDF Evidence Viewer */}
+        {/* Panel 3: Dynamic Multi-Document Viewer */}
         <ResizablePanel defaultSize={35} minSize={25}>
           <BoundingBoxViewer
-            pdfUrl="/mock.pdf"
-            amount={auditInputs.payAmount}
+            activeDoc={activeDoc}
+            poAmount={auditInputs.poAmount}
+            invAmount={auditInputs.invAmount}
+            payAmount={auditInputs.payAmount}
             hasDiscrepancy={hasWireDiscrepancy}
-            activeBox={
-              status === "complete" && hasWireDiscrepancy
-                ? { page: 1, x_min: 0, y_min: 0, x_max: 0, y_max: 0 }
-                : null
-            }
+            status={status}
           />
         </ResizablePanel>
       </ResizablePanelGroup>
-
-      {/* Custom Document Upload Modal */}
-      <UploadModal
-        isOpen={isUploadOpen}
-        onClose={() => setIsUploadOpen(false)}
-        onIngestComplete={(custom) => {
-          setAuditInputs((prev) => ({
-            ...prev,
-            poAmount: custom.poAmount,
-            invAmount: custom.invAmount,
-            payAmount: custom.payAmount,
-            ebitda: custom.ebitda,
-          }));
-          setStatus("idle");
-        }}
-      />
     </div>
   );
 }
