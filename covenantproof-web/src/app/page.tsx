@@ -15,7 +15,9 @@ import {
   ChevronRight,
   TrendingDown,
   Building2,
-  FileCode2
+  FileCode2,
+  Database,
+  Workflow
 } from "lucide-react";
 
 export default function LandingPage() {
@@ -38,10 +40,10 @@ export default function LandingPage() {
         </p>
 
         {/* CTA Actions */}
-        <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
+        <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
           <Link href="/dashboard">
             <Button className="bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold h-11 px-6 text-xs md:text-sm shadow-lg shadow-emerald-500/20">
-              Launch Interactive Audit Desk <ArrowRight className="w-4 h-4 ml-2" />
+              Launch Tier-2 Exception Desk <ArrowRight className="w-4 h-4 ml-2" />
             </Button>
           </Link>
           <Link href="/architecture">
@@ -76,8 +78,69 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* THE PROBLEM STATEMENT & LAYMAN EXPLANATION */}
-      <section className="px-6 py-16 max-w-5xl mx-auto border-b border-slate-900">
+      {/* NEW SECTION: THE TWO-TIER OPERATING PARADIGM */}
+      <section className="px-6 py-14 max-w-5xl mx-auto border-b border-slate-900">
+        <div className="text-center max-w-3xl mx-auto mb-10">
+          <Badge className="bg-indigo-950 text-indigo-400 border border-indigo-800/40 text-[10px] mb-2">
+            SYSTEM CONTEXT &amp; HOW TO EVALUATE
+          </Badge>
+          <h2 className="text-2xl md:text-3xl font-bold tracking-tight">
+            How This Platform Operates: The Two-Tier Architecture
+          </h2>
+          <p className="mt-2 text-xs md:text-sm text-slate-400 leading-relaxed">
+            Before entering the Interactive Desk, understand what layer of the system you are testing. CovenantProof separates high-volume batch processing from forensic exception resolution.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Tier 1 Card */}
+          <div className="p-6 rounded-2xl border border-slate-800 bg-slate-900/30 space-y-3 relative overflow-hidden">
+            <div className="flex items-center justify-between">
+              <span className="font-mono text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
+                <Database className="w-4 h-4 text-slate-500" /> Tier 1: Distributed Batch Engine
+              </span>
+              <Badge variant="outline" className="border-slate-700 text-[10px] text-slate-400 font-mono">
+                HEADLESS BACKEND
+              </Badge>
+            </div>
+            <h3 className="text-base font-bold text-slate-200">The 1.2M+ Document Batch Pipeline</h3>
+            <p className="text-xs text-slate-400 leading-relaxed">
+              In commercial lending, hundreds of thousands of standard, clean documents are ingested via Amazon S3 and Kafka. Headless PySpark and Ray worker clusters run layout-aware OCR and deterministic math:
+            </p>
+            <div className="p-3 bg-slate-950 rounded-lg border border-slate-800 text-xs font-mono text-emerald-400 flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 shrink-0" />
+              <span>96.4% Clean Passes: Auto-signed and committed directly to core banking databases without human touch.</span>
+            </div>
+          </div>
+
+          {/* Tier 2 Card */}
+          <div className="p-6 rounded-2xl border border-emerald-500/40 bg-emerald-950/10 space-y-3 relative overflow-hidden shadow-lg shadow-emerald-950/20">
+            <div className="flex items-center justify-between">
+              <span className="font-mono text-xs font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-2">
+                <Layers className="w-4 h-4 text-emerald-400" /> Tier 2: Interactive Exception Desk
+              </span>
+              <Badge className="bg-emerald-950 text-emerald-300 border border-emerald-700/60 text-[10px] font-mono">
+                THIS APPLICATION
+              </Badge>
+            </div>
+            <h3 className="text-base font-bold text-slate-100">The 3.6% Anomaly Resolution Workspace</h3>
+            <p className="text-xs text-slate-300 leading-relaxed">
+              When Tier 1 chokes on tricky edge cases—such as wire tampering, complex EBITDA add-back caps, or ambiguous scan quality—it routes the facility to <strong>this interactive desk</strong>:
+            </p>
+            <div className="p-3 bg-slate-950 rounded-lg border border-amber-800/40 text-xs font-mono text-amber-300 flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 shrink-0" />
+              <span>3.6% Exceptions: Human credit officers verify live coordinate bounding boxes and fine-tuned AI audit synthesis.</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-4 p-3 bg-slate-900/60 rounded-xl border border-slate-800 text-center text-xs text-slate-400">
+          💡 <strong>What you are testing:</strong> The <strong>Interactive Audit Desk (`/dashboard`)</strong> is the active Tier-2 interface for <em>Facility #4,182 (Cobalt Equipment LLC)</em>, triaging flagged documents that failed automated Tier-1 processing.
+        </div>
+      </section>
+
+      {/* THE PROBLEM STATEMENT */}
+      <section className="px-6 py-14 max-w-5xl mx-auto border-b border-slate-900">
         <div className="text-center max-w-3xl mx-auto mb-12">
           <Badge variant="outline" className="text-indigo-400 border-indigo-500/30 mb-3 text-[10px]">
             THE REAL-WORLD PROBLEM
@@ -115,7 +178,7 @@ export default function LandingPage() {
             <div className="w-8 h-8 rounded-lg bg-indigo-900/30 flex items-center justify-center text-indigo-400">
               <Building2 className="w-4 h-4" />
             </div>
-            <h3 className="text-sm font-semibold text-slate-200">Regulatory & FDIC Scrutiny</h3>
+            <h3 className="text-sm font-semibold text-slate-200">Regulatory &amp; FDIC Scrutiny</h3>
             <p className="text-xs text-slate-400 leading-relaxed">
               Examiners require audit-ready proof for covenant metrics like Fixed Charge Coverage (FCCR). Unverified spreadsheets fail compliance reviews without exact document citations.
             </p>
@@ -124,7 +187,7 @@ export default function LandingPage() {
       </section>
 
       {/* WHY AI + DETERMINISTIC CODE (THE CALCULATOR REBUTTAL) */}
-      <section className="px-6 py-16 max-w-5xl mx-auto border-b border-slate-900">
+      <section className="px-6 py-14 max-w-5xl mx-auto border-b border-slate-900">
         <div className="p-8 rounded-2xl border border-slate-800 bg-gradient-to-b from-slate-900/60 to-slate-950 space-y-6">
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
             <div>
@@ -141,16 +204,16 @@ export default function LandingPage() {
           </div>
 
           <p className="text-xs md:text-sm text-slate-300 leading-relaxed">
-            If commercial lending data arrived in neat Excel tables, a simple Python script could do the math in 10 lines. But real-world credit documents are messy: <strong>80-page scanned PDF credit agreements, multi-column vendor invoices, and complex legal clauses</strong> defining borrower EBITDA add-backs.
+            If commercial lending data arrived in neat Excel tables, a simple Python script could do the math in 10 lines. But real-world credit documents are messy: <strong>scanned 80-page credit agreements with complex EBITDA definitions, multi-column vendor invoices, and legal synergy caps</strong>.
           </p>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs pt-2">
             <div className="p-4 rounded-xl border border-slate-800 bg-slate-900/40 space-y-2">
               <span className="font-semibold text-red-400 block flex items-center gap-1.5">
-                ✕ Where Pure Calculators & Code Fail
+                ✕ Where Pure Calculators &amp; Code Fail
               </span>
               <p className="text-slate-400 leading-relaxed">
-                Traditional deterministic code cannot interpret unstructured PDFs, read arbitrary invoice formats, or understand legal covenant definitions (e.g., <em>&quot;Section 8.4(b) allows add-backs capped at 15% of EBITDA&quot;</em>).
+                Traditional code cannot interpret unstructured legal language, read inconsistent multi-column invoices, or understand conditional add-backs (e.g., <em>&quot;Section 8.4(b) pro-forma synergies capped at 15% of Adjusted EBITDA&quot;</em>).
               </p>
             </div>
 
@@ -169,53 +232,15 @@ export default function LandingPage() {
             <div>
               <strong className="text-emerald-300 block mb-1">The CovenantProof Solution: The Neuro-Symbolic Agent</strong>
               <span>
-                We use fine-tuned local models strictly for what they excel at: <strong>unstructured extraction, entity mapping, and synthesis</strong>. We then freeze the extracted figures and pass them to <strong>deterministic Python execution nodes</strong> for 100% mathematically exact calculations. Zero math hallucination.
+                We use fine-tuned local models strictly for what they excel at: <strong>unstructured extraction, entity mapping, and legal covenant parsing</strong>. We then freeze the extracted figures and pass them to <strong>deterministic Python execution nodes</strong> for 100% mathematically exact calculations. Zero math hallucination.
               </span>
             </div>
           </div>
         </div>
       </section>
 
-      {/* HOW TO USE / WORKFLOW */}
-      <section className="px-6 py-16 max-w-5xl mx-auto border-b border-slate-900">
-        <div className="text-center max-w-2xl mx-auto mb-12">
-          <Badge variant="outline" className="text-slate-400 border-slate-800 mb-3 text-[10px]">
-            HOW IT WORKS
-          </Badge>
-          <h2 className="text-2xl md:text-3xl font-bold tracking-tight">
-            How an Audit Runs in 3 Steps
-          </h2>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-xs">
-          <div className="p-5 rounded-xl border border-slate-800 bg-slate-900/40 space-y-3">
-            <span className="font-mono text-emerald-400 font-bold text-sm">01. INGEST &amp; EXTRACT</span>
-            <h3 className="text-sm font-semibold text-slate-200">Unstructured Document Ingestion</h3>
-            <p className="text-slate-400 leading-relaxed">
-              The intake agent parses incoming Purchase Orders, Invoices, and Payment Receipts, mapping pixel bounding box coordinates for each figure.
-            </p>
-          </div>
-
-          <div className="p-5 rounded-xl border border-slate-800 bg-slate-900/40 space-y-3">
-            <span className="font-mono text-indigo-400 font-bold text-sm">02. RECONCILE &amp; VERIFY</span>
-            <h3 className="text-sm font-semibold text-slate-200">Deterministic 3-Way Graph Match</h3>
-            <p className="text-slate-400 leading-relaxed">
-              Deterministic Python state nodes verify cross-document matching and calculate debt covenants (FCCR) against credit agreement thresholds.
-            </p>
-          </div>
-
-          <div className="p-5 rounded-xl border border-slate-800 bg-slate-900/40 space-y-3">
-            <span className="font-mono text-purple-400 font-bold text-sm">03. AUDIT MEMO &amp; EVIDENCE</span>
-            <h3 className="text-sm font-semibold text-slate-200">Grounded Synthesis &amp; Triage</h3>
-            <p className="text-slate-400 leading-relaxed">
-              The fine-tuned local GGUF model drafts the executive audit memorandum, citing exact pixel coordinate anchors for instant human sign-off.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* COMPETITIVE MATRIX (WHY NOT AN EXISTING PRODUCT?) */}
-      <section className="px-6 py-16 max-w-5xl mx-auto border-b border-slate-900">
+      {/* COMPETITIVE MATRIX */}
+      <section className="px-6 py-14 max-w-5xl mx-auto border-b border-slate-900">
         <div className="text-center max-w-3xl mx-auto mb-10">
           <Badge variant="outline" className="text-amber-400 border-amber-500/30 mb-3 text-[10px]">
             COMPETITIVE BENCHMARK
@@ -276,7 +301,7 @@ export default function LandingPage() {
       </section>
 
       {/* FOOTER CTA */}
-      <section className="px-6 py-16 max-w-4xl mx-auto text-center space-y-6">
+      <section className="px-6 py-14 max-w-4xl mx-auto text-center space-y-6">
         <h2 className="text-2xl md:text-3xl font-bold">Ready to Inspect the Working System?</h2>
         <p className="text-xs md:text-sm text-slate-400 max-w-xl mx-auto">
           Test live audit scenarios directly against the AWS Tesla T4 GPU backend, or inspect the distributed scaling architecture.
@@ -284,7 +309,7 @@ export default function LandingPage() {
         <div className="flex items-center justify-center gap-4 pt-2">
           <Link href="/dashboard">
             <Button className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold h-10 px-5 text-xs">
-              Go to Interactive Audit Desk <ChevronRight className="w-4 h-4 ml-1" />
+              Go to Tier-2 Exception Desk <ChevronRight className="w-4 h-4 ml-1" />
             </Button>
           </Link>
           <Link href="/architecture">

@@ -18,7 +18,8 @@ import {
   FileText,
   Eye,
   Layers,
-  Database
+  Database,
+  FileSpreadsheet
 } from "lucide-react";
 
 type ScenarioType = "tampering" | "clean" | "covenant_breach";
@@ -90,7 +91,11 @@ export default function WorkspacePage() {
     setAuditInputs(SCENARIOS[type].inputs);
     setStatus("idle");
     setAuditResult(null);
-    setActiveDoc("payment");
+    if (type === "covenant_breach") {
+      setActiveDoc("compliance");
+    } else {
+      setActiveDoc("payment");
+    }
   };
 
   const runLiveAudit = async () => {
@@ -152,16 +157,16 @@ export default function WorkspacePage() {
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-            <span className="font-semibold text-slate-200">Portfolio Engine:</span>
-            <span className="text-slate-400 font-mono">1.2M+ Docs (Q3 2026)</span>
+            <span className="font-semibold text-slate-200">Tier-2 Exception Desk:</span>
+            <span className="text-slate-400 font-mono">1.2M+ Ingested (Q3 2026)</span>
           </div>
           <span className="text-slate-700 hidden sm:inline">|</span>
           <div className="text-slate-400 hidden sm:block">
-            <span className="text-emerald-400 font-semibold font-mono">96.4%</span> Auto-Approved
+            <span className="text-emerald-400 font-semibold font-mono">96.4%</span> Batch Approved
           </div>
           <span className="text-slate-700 hidden sm:inline">|</span>
           <div className="text-amber-400 hidden sm:block">
-            <span className="font-semibold font-mono">3.6%</span> Exception Desk
+            <span className="font-semibold font-mono">3.6%</span> Exception Triage Active
           </div>
         </div>
 
@@ -220,7 +225,7 @@ export default function WorkspacePage() {
         </div>
       </div>
 
-      {/* In-Browser Editable Values Bar (Collapsible & Responsive Grid) */}
+      {/* In-Browser Editable Values Bar */}
       {showEditor && (
         <div className="bg-slate-900 border-b border-slate-800 px-4 md:px-6 py-3 transition-all animate-in slide-in-from-top-2">
           <div className="flex items-center justify-between mb-2">
@@ -275,7 +280,7 @@ export default function WorkspacePage() {
         </div>
       )}
 
-      {/* MOBILE SEGMENTED TAB SWITCHER (< lg screens) */}
+      {/* MOBILE SEGMENTED TAB SWITCHER */}
       <div className="lg:hidden grid grid-cols-3 border-b border-slate-800 bg-slate-900/40 text-xs font-medium">
         <button
           onClick={() => setMobileTab("documents")}
@@ -286,7 +291,7 @@ export default function WorkspacePage() {
           }`}
         >
           <FileText className="w-3.5 h-3.5" />
-          <span>Docs (3)</span>
+          <span>Docs (4)</span>
         </button>
 
         <button
@@ -300,7 +305,7 @@ export default function WorkspacePage() {
           <Layers className="w-3.5 h-3.5" />
           <span>Findings</span>
           {status === "complete" && (
-            <span className={`w-1.5 h-1.5 rounded-full ${hasWireDiscrepancy ? "bg-amber-400" : "bg-emerald-400"}`} />
+            <span className={`w-1.5 h-1.5 rounded-full ${hasWireDiscrepancy || isCovenantBreached ? "bg-amber-400" : "bg-emerald-400"}`} />
           )}
         </button>
 
@@ -317,24 +322,21 @@ export default function WorkspacePage() {
         </button>
       </div>
 
-      {/* MOBILE VIEW CONTAINER (< lg screens) */}
+      {/* MOBILE VIEW CONTAINER */}
       <div className="lg:hidden flex-1 overflow-y-auto p-4">
-        {/* Mobile Tab 1: Documents */}
         {mobileTab === "documents" && (
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400">
                 Inflow Documents (Tap to View)
               </h3>
-              <span className="text-[10px] font-mono text-emerald-400">3 Ingested</span>
+              <span className="text-[10px] font-mono text-emerald-400">4 Ingested</span>
             </div>
 
             <div
               onClick={() => { setActiveDoc("po"); setMobileTab("evidence"); }}
               className={`p-3 rounded-lg border text-xs flex justify-between items-center cursor-pointer transition-all ${
-                activeDoc === "po"
-                  ? "bg-slate-800/90 border-indigo-500 shadow-sm"
-                  : "bg-slate-900 border-slate-800"
+                activeDoc === "po" ? "bg-slate-800/90 border-indigo-500 shadow-sm" : "bg-slate-900 border-slate-800"
               }`}
             >
               <div>
@@ -349,9 +351,7 @@ export default function WorkspacePage() {
             <div
               onClick={() => { setActiveDoc("invoice"); setMobileTab("evidence"); }}
               className={`p-3 rounded-lg border text-xs flex justify-between items-center cursor-pointer transition-all ${
-                activeDoc === "invoice"
-                  ? "bg-slate-800/90 border-indigo-500 shadow-sm"
-                  : "bg-slate-900 border-slate-800"
+                activeDoc === "invoice" ? "bg-slate-800/90 border-indigo-500 shadow-sm" : "bg-slate-900 border-slate-800"
               }`}
             >
               <div>
@@ -368,9 +368,7 @@ export default function WorkspacePage() {
               className={`p-3 rounded-lg border text-xs flex justify-between items-center cursor-pointer transition-all ${
                 activeDoc === "payment"
                   ? "bg-slate-800/90 border-indigo-500 shadow-sm"
-                  : hasWireDiscrepancy
-                  ? "bg-slate-900 border-amber-800/60"
-                  : "bg-slate-900 border-slate-800"
+                  : hasWireDiscrepancy ? "bg-slate-900 border-amber-800/60" : "bg-slate-900 border-slate-800"
               }`}
             >
               <div>
@@ -387,27 +385,30 @@ export default function WorkspacePage() {
               </Badge>
             </div>
 
-            <div className="pt-3 border-t border-slate-800/80">
-              <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 block mb-2">
-                Compliance Certificate Metrics
-              </span>
-              <div className="p-3 bg-slate-900/60 rounded border border-slate-800/60 text-xs space-y-1.5">
-                <div className="flex justify-between text-slate-400">
-                  <span>Borrower EBITDA:</span>
-                  <span className="font-mono text-slate-200">${auditInputs.ebitda}</span>
-                </div>
-                <div className="flex justify-between text-slate-400">
-                  <span>Covenant FCCR:</span>
-                  <span className={`font-mono font-medium ${isCovenantBreached ? "text-red-400" : "text-emerald-400"}`}>
-                    {fccr.toFixed(2)}x (Min 1.15x)
-                  </span>
-                </div>
+            {/* Clickable Messy Compliance Certificate Doc */}
+            <div
+              onClick={() => { setActiveDoc("compliance"); setMobileTab("evidence"); }}
+              className={`p-3 rounded-lg border text-xs flex justify-between items-center cursor-pointer transition-all ${
+                activeDoc === "compliance"
+                  ? "bg-slate-800/90 border-indigo-500 shadow-sm"
+                  : isCovenantBreached ? "bg-slate-900 border-red-800/60" : "bg-slate-900 border-slate-800"
+              }`}
+            >
+              <div>
+                <span className="block font-medium flex items-center gap-1.5">
+                  <FileSpreadsheet className="w-3.5 h-3.5 text-indigo-400" /> COV-2026-Q3-CERT.pdf
+                </span>
+                <span className={`text-[10px] font-mono ${isCovenantBreached ? "text-red-400 font-semibold" : "text-slate-400"}`}>
+                  EBITDA: ${auditInputs.ebitda}
+                </span>
               </div>
+              <Badge className={isCovenantBreached ? "bg-red-950/80 text-red-400 border border-red-800/40 text-[10px]" : "bg-emerald-950/80 text-emerald-400 border border-emerald-800/40 text-[10px]"}>
+                {isCovenantBreached ? "BREACH" : "COMPLIANT"}
+              </Badge>
             </div>
           </div>
         )}
 
-        {/* Mobile Tab 2: Analysis Findings */}
         {mobileTab === "analysis" && (
           <div className="space-y-4">
             {status === "idle" && (
@@ -444,7 +445,7 @@ export default function WorkspacePage() {
                         onClick={() => { setActiveDoc("payment"); setMobileTab("evidence"); }}
                         className="w-full mt-2 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-xs h-8"
                       >
-                        <Eye className="w-3.5 h-3.5 mr-1.5" /> View Highlighted Evidence in Receipt
+                        <Eye className="w-3.5 h-3.5 mr-1.5" /> View Wire Receipt Evidence
                       </Button>
                     </CardContent>
                   </Card>
@@ -468,17 +469,28 @@ export default function WorkspacePage() {
                       Fixed Charge Coverage Ratio (FCCR)
                     </CardTitle>
                   </CardHeader>
-                  <CardContent className="text-xs flex justify-between items-center">
-                    <div>
-                      <span className="text-slate-400 block">Calculated Ratio:</span>
-                      <span className={`font-mono font-bold text-sm ${isCovenantBreached ? "text-red-400" : "text-emerald-400"}`}>
-                        {fccr.toFixed(2)}x
-                      </span>
+                  <CardContent className="text-xs space-y-2">
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <span className="text-slate-400 block">Calculated Ratio:</span>
+                        <span className={`font-mono font-bold text-sm ${isCovenantBreached ? "text-red-400" : "text-emerald-400"}`}>
+                          {fccr.toFixed(2)}x
+                        </span>
+                      </div>
+                      <div className="text-right text-[11px] text-slate-500">
+                        <span>Threshold:</span>
+                        <span className="block font-mono">1.15x Min</span>
+                      </div>
                     </div>
-                    <div className="text-right text-[11px] text-slate-500">
-                      <span>Threshold:</span>
-                      <span className="block font-mono">1.15x Min</span>
-                    </div>
+                    {isCovenantBreached && (
+                      <Button
+                        size="sm"
+                        onClick={() => { setActiveDoc("compliance"); setMobileTab("evidence"); }}
+                        className="w-full mt-2 bg-red-500/20 hover:bg-red-500/30 text-red-300 border border-red-500/40 text-xs h-8"
+                      >
+                        <Eye className="w-3.5 h-3.5 mr-1.5" /> View EBITDA Schedule Breach
+                      </Button>
+                    )}
                   </CardContent>
                 </Card>
 
@@ -497,7 +509,6 @@ export default function WorkspacePage() {
           </div>
         )}
 
-        {/* Mobile Tab 3: Document Evidence Viewer */}
         {mobileTab === "evidence" && (
           <div className="space-y-3">
             <BoundingBoxViewer
@@ -505,6 +516,12 @@ export default function WorkspacePage() {
               poAmount={auditInputs.poAmount}
               invAmount={auditInputs.invAmount}
               payAmount={auditInputs.payAmount}
+              ebitda={auditInputs.ebitda}
+              cashTaxes={auditInputs.cashTaxes}
+              interestExpense={auditInputs.interestExpense}
+              currentMaturities={auditInputs.currentMaturities}
+              fccr={fccr}
+              isCovenantBreached={isCovenantBreached}
               hasDiscrepancy={hasWireDiscrepancy}
               status={status}
             />
@@ -512,20 +529,21 @@ export default function WorkspacePage() {
         )}
       </div>
 
-      {/* DESKTOP 3-COLUMN WORKSPACE (>= lg screens) */}
+      {/* DESKTOP 3-COLUMN WORKSPACE */}
       <div className="hidden lg:flex flex-1 overflow-hidden">
         <ResizablePanelGroup className="flex-1 flex flex-row">
 
-          {/* Panel 1: Inflow Document Tree */}
+          {/* Panel 1: Inflow Document Tree (Now 4 Clickable Docs) */}
           <ResizablePanel defaultSize={20} minSize={15}>
             <div className="p-4 space-y-3 h-full overflow-y-auto border-r border-slate-800">
               <div className="flex items-center justify-between">
                 <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-                  Inflow Documents
+                  Exception Documents
                 </h3>
                 <span className="text-[10px] font-mono text-indigo-400">Click to View</span>
               </div>
 
+              {/* PO Doc */}
               <div
                 onClick={() => setActiveDoc("po")}
                 className={`p-3 rounded-lg border text-xs flex justify-between items-center cursor-pointer transition-all ${
@@ -543,6 +561,7 @@ export default function WorkspacePage() {
                 <Badge className="bg-emerald-950/80 text-emerald-400 border border-emerald-800/40 text-[10px]">MATCH</Badge>
               </div>
 
+              {/* Invoice Doc */}
               <div
                 onClick={() => setActiveDoc("invoice")}
                 className={`p-3 rounded-lg border text-xs flex justify-between items-center cursor-pointer transition-all ${
@@ -560,6 +579,7 @@ export default function WorkspacePage() {
                 <Badge className="bg-emerald-950/80 text-emerald-400 border border-emerald-800/40 text-[10px]">MATCH</Badge>
               </div>
 
+              {/* Bank Payment Doc */}
               <div
                 onClick={() => setActiveDoc("payment")}
                 className={`p-3 rounded-lg border text-xs flex justify-between items-center cursor-pointer transition-all ${
@@ -584,9 +604,34 @@ export default function WorkspacePage() {
                 </Badge>
               </div>
 
-              <div className="pt-4 border-t border-slate-800/80">
-                <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 block mb-2">
-                  Compliance Certificate
+              {/* Clickable Messy EBITDA Compliance Document */}
+              <div
+                onClick={() => setActiveDoc("compliance")}
+                className={`p-3 rounded-lg border text-xs flex justify-between items-center cursor-pointer transition-all ${
+                  activeDoc === "compliance"
+                    ? "bg-slate-800/90 border-indigo-500 shadow-sm shadow-indigo-950"
+                    : isCovenantBreached
+                    ? "bg-slate-900 border-red-800/60"
+                    : "bg-slate-900 border-slate-800 hover:border-slate-700"
+                }`}
+              >
+                <div>
+                  <span className="block font-medium flex items-center gap-1.5">
+                    <FileSpreadsheet className="w-3.5 h-3.5 text-indigo-400" /> COV-2026-Q3-CERT.pdf
+                  </span>
+                  <span className={`text-[10px] font-mono ${isCovenantBreached ? "text-red-400 font-semibold" : "text-slate-400"}`}>
+                    EBITDA: ${auditInputs.ebitda}
+                  </span>
+                </div>
+                <Badge className={isCovenantBreached ? "bg-red-950/80 text-red-400 border border-red-800/40 text-[10px]" : "bg-emerald-950/80 text-emerald-400 border border-emerald-800/40 text-[10px]"}>
+                  {isCovenantBreached ? "BREACH" : "COMPLIANT"}
+                </Badge>
+              </div>
+
+              {/* Compliance Summary Mini-Card */}
+              <div className="pt-3 border-t border-slate-800/80">
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 block mb-1.5">
+                  Covenant Summary
                 </span>
                 <div className="p-2.5 bg-slate-900/60 rounded border border-slate-800/60 text-[11px] space-y-1">
                   <div className="flex justify-between text-slate-400">
@@ -725,13 +770,19 @@ export default function WorkspacePage() {
 
           <ResizableHandle />
 
-          {/* Panel 3: Dynamic PDF Evidence Viewer */}
+          {/* Panel 3: Dynamic Multi-Document Viewer */}
           <ResizablePanel defaultSize={35} minSize={25}>
             <BoundingBoxViewer
               activeDoc={activeDoc}
               poAmount={auditInputs.poAmount}
               invAmount={auditInputs.invAmount}
               payAmount={auditInputs.payAmount}
+              ebitda={auditInputs.ebitda}
+              cashTaxes={auditInputs.cashTaxes}
+              interestExpense={auditInputs.interestExpense}
+              currentMaturities={auditInputs.currentMaturities}
+              fccr={fccr}
+              isCovenantBreached={isCovenantBreached}
               hasDiscrepancy={hasWireDiscrepancy}
               status={status}
             />

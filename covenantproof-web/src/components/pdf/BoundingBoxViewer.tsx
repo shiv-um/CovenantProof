@@ -1,12 +1,18 @@
 "use client";
 
-export type ActiveDocType = "po" | "invoice" | "payment";
+export type ActiveDocType = "po" | "invoice" | "payment" | "compliance";
 
 interface BoundingBoxViewerProps {
   activeDoc: ActiveDocType;
   poAmount: string;
   invAmount: string;
   payAmount: string;
+  ebitda: string;
+  cashTaxes: string;
+  interestExpense: string;
+  currentMaturities: string;
+  fccr: number;
+  isCovenantBreached: boolean;
   hasDiscrepancy: boolean;
   status: "idle" | "analyzing" | "complete" | "error";
 }
@@ -16,6 +22,12 @@ export function BoundingBoxViewer({
   poAmount,
   invAmount,
   payAmount,
+  ebitda,
+  cashTaxes,
+  interestExpense,
+  currentMaturities,
+  fccr,
+  isCovenantBreached,
   hasDiscrepancy,
   status,
 }: BoundingBoxViewerProps) {
@@ -39,27 +51,27 @@ export function BoundingBoxViewer({
             {activeDoc === "po" && "Non-standard fax resolution + handwritten pen override broke regex parser."}
             {activeDoc === "invoice" && "Credit memo deduction + multi-tier cash discounts confused OCR templates."}
             {activeDoc === "payment" && "Raw Fedwire MT103 SWIFT tags required semantic entity mapping."}
+            {activeDoc === "compliance" && "Complex Section 8.4(b) EBITDA add-back cap calculation required LLM reasoning."}
           </span>
         </div>
         <span className="font-mono text-[10px] text-amber-400/80 shrink-0 ml-2">Tier-2 Triaged</span>
       </div>
 
       {/* AUTHENTIC SCANNED DOCUMENT CANVAS */}
-      <div className="relative w-full max-w-[640px] bg-[#fbfbfa] text-slate-900 rounded-lg shadow-2xl p-6 md:p-8 min-h-[640px] border border-stone-300 font-sans selection:bg-amber-200">
+      <div className="relative w-full max-w-[640px] bg-[#fbfbfa] text-slate-900 rounded-lg shadow-2xl p-6 md:p-8 min-h-[660px] border border-stone-300 font-sans selection:bg-amber-200">
 
-        {/* FAINT FAX / SCAN TRANSMISSION BANNER */}
+        {/* FAINT SCAN TRANSMISSION BANNER */}
         <div className="border-b border-stone-300/80 pb-2 mb-5 font-mono text-[9px] text-stone-500 flex justify-between tracking-tight">
-          <span>FAX: +1 (201) 555-0144 • COBALT NY METRO OPERATIONS</span>
-          <span>OCT 24, 2026 09:14:22 EST • 200 DPI SCAN</span>
+          <span>SEC FILING ATTACHMENT • COBALT EQUIPMENT LLC</span>
+          <span>FISCAL Q3 AUDIT • EXHIBIT C COMPLIANCE</span>
           <span className="font-bold">PAGE 01/01</span>
         </div>
 
         {/* ======================================================== */}
-        {/* DOCUMENT 1: PURCHASE ORDER (WITH VOIDED & HANDWRITTEN NOTES) */}
+        {/* DOCUMENT 1: PURCHASE ORDER */}
         {/* ======================================================== */}
         {activeDoc === "po" && (
           <div className="space-y-5 animate-in fade-in duration-200">
-            {/* Header with Rubber Stamp */}
             <div className="flex justify-between items-start border-b border-stone-300 pb-4">
               <div>
                 <h2 className="text-xl font-extrabold tracking-tight text-stone-900 font-serif">
@@ -69,14 +81,11 @@ export function BoundingBoxViewer({
                   DOCUMENT NO: PO-2026-8801 • ISSUED BY BORROWER
                 </p>
               </div>
-
-              {/* Tilted Blue Stamp */}
               <div className="border-2 border-indigo-700 text-indigo-700 text-[10px] font-mono font-extrabold uppercase px-2.5 py-1 rounded tracking-widest rotate-[-6deg] opacity-85 shadow-sm">
                 CREDIT COMM. APPROVED
               </div>
             </div>
 
-            {/* Metadata Grid */}
             <div className="grid grid-cols-2 gap-4 text-xs border-b border-stone-200 pb-4">
               <div>
                 <span className="text-stone-500 block text-[10px] uppercase font-semibold">Buyer / Obligor</span>
@@ -90,12 +99,10 @@ export function BoundingBoxViewer({
               </div>
             </div>
 
-            {/* Complex Multi-Line Item Breakdown */}
             <div className="space-y-2 text-xs">
               <span className="text-[10px] font-bold uppercase tracking-wider text-stone-500">
                 Itemized Requisition &amp; Amendments
               </span>
-
               <div className="border border-stone-300 rounded overflow-hidden">
                 <table className="w-full text-left text-xs">
                   <thead className="bg-stone-100 text-stone-600 text-[10px] uppercase border-b border-stone-300">
@@ -132,7 +139,6 @@ export function BoundingBoxViewer({
               </div>
             </div>
 
-            {/* Simulated Handwritten Ink Amendment */}
             <div className="p-3 bg-stone-100/80 rounded border border-stone-300 relative">
               <span className="text-[10px] font-bold uppercase text-stone-500 block mb-1">
                 Handwritten Operational Override:
@@ -142,7 +148,6 @@ export function BoundingBoxViewer({
               </p>
             </div>
 
-            {/* Total Section */}
             <div className="p-3 bg-stone-100 border border-stone-300 rounded flex justify-between items-center">
               <span className="text-xs font-bold text-stone-800">NET AUTHORIZED PO TOTAL:</span>
               <span className="font-mono text-base font-extrabold text-stone-900">
@@ -153,11 +158,10 @@ export function BoundingBoxViewer({
         )}
 
         {/* ======================================================== */}
-        {/* DOCUMENT 2: COMMERCIAL INVOICE (DISCOUNTS & CREDIT MEMOS) */}
+        {/* DOCUMENT 2: COMMERCIAL INVOICE */}
         {/* ======================================================== */}
         {activeDoc === "invoice" && (
           <div className="space-y-5 animate-in fade-in duration-200">
-            {/* Header with Red Ink Stamp */}
             <div className="flex justify-between items-start border-b border-stone-300 pb-4">
               <div>
                 <h2 className="text-xl font-extrabold tracking-tight text-stone-900 font-sans">
@@ -167,20 +171,16 @@ export function BoundingBoxViewer({
                   INVOICE REF: INV-2026-9904 • ATLAS INDUSTRIAL SUPPLY
                 </p>
               </div>
-
-              {/* Tilted Red Stamp */}
               <div className="border-2 border-red-700 text-red-700 text-[10px] font-mono font-extrabold uppercase px-2 py-1 rounded tracking-widest rotate-[4deg] opacity-85 shadow-sm">
                 ACCOUNTS PAYABLE RECEIVED
               </div>
             </div>
 
-            {/* Invoice Line Breakdown */}
             <div className="space-y-2 text-xs">
               <div className="flex justify-between text-stone-600 text-[11px] pb-1 border-b border-stone-200">
                 <span>Remit To: Atlas Industrial Supply Escrow</span>
                 <span className="font-mono">Terms: 2% 10 / Net 30</span>
               </div>
-
               <div className="space-y-2 pt-2">
                 <div className="flex justify-between text-stone-700">
                   <span>Gross Machinery Billed Total:</span>
@@ -201,7 +201,6 @@ export function BoundingBoxViewer({
               </div>
             </div>
 
-            {/* Handwritten Accounts Payable Sticky Note */}
             <div className="p-3 bg-amber-50 rounded border border-amber-300 text-xs shadow-sm">
               <span className="text-[10px] font-bold uppercase text-amber-800 block">
                 AP Department Note (Oct 23, 2026):
@@ -211,7 +210,6 @@ export function BoundingBoxViewer({
               </p>
             </div>
 
-            {/* Total Due */}
             <div className="p-3 bg-stone-100 border border-stone-300 rounded flex justify-between items-center">
               <span className="text-xs font-bold text-stone-800">NET INVOICE BALANCE DUE:</span>
               <span className="font-mono text-base font-extrabold text-stone-900">
@@ -222,11 +220,10 @@ export function BoundingBoxViewer({
         )}
 
         {/* ======================================================== */}
-        {/* DOCUMENT 3: BANK WIRE CONFIRMATION (FEDWIRE MT103 WITH BOUNDING BOX) */}
+        {/* DOCUMENT 3: BANK WIRE CONFIRMATION */}
         {/* ======================================================== */}
         {activeDoc === "payment" && (
           <div className="space-y-5 animate-in fade-in duration-200">
-            {/* Header with Green Stamp */}
             <div className="flex justify-between items-start border-b border-stone-300 pb-4">
               <div>
                 <h2 className="text-xl font-extrabold tracking-tight text-stone-900 font-mono">
@@ -236,14 +233,11 @@ export function BoundingBoxViewer({
                   FED REF: FED-889104-NY • WIRE ROOM DISBURSEMENT
                 </p>
               </div>
-
-              {/* Tilted Green Stamp */}
               <div className="border-2 border-emerald-700 text-emerald-700 text-[10px] font-mono font-extrabold uppercase px-2 py-1 rounded tracking-widest rotate-[-3deg] opacity-85 shadow-sm">
                 FUNDS TRANSFERRED • CHASE NY
               </div>
             </div>
 
-            {/* SWIFT / Fedwire Tag Block (Raw Messy Banking Format) */}
             <div className="bg-stone-100 p-3.5 rounded border border-stone-300 font-mono text-[11px] space-y-1.5 text-stone-800">
               <div>
                 <span className="text-stone-400">{`{20:`}</span>
@@ -267,7 +261,6 @@ export function BoundingBoxViewer({
               </div>
             </div>
 
-            {/* Dynamic Wire Amount with Calibrated Bounding Box */}
             <div className="p-4 bg-stone-100 border border-stone-300 rounded flex justify-between items-center relative">
               <span className="text-xs font-bold text-stone-800">
                 SWIFT {`{32A}`} AMOUNT TRANSFERRED:
@@ -284,7 +277,6 @@ export function BoundingBoxViewer({
                   {formatMoney(payAmount)}
                 </span>
 
-                {/* Grounded Evidence Bounding Box Highlight */}
                 {hasDiscrepancy && status === "complete" && (
                   <div
                     className="absolute -inset-2 border-2 border-amber-500 bg-amber-500/20 rounded pointer-events-none animate-pulse"
@@ -298,7 +290,6 @@ export function BoundingBoxViewer({
               </div>
             </div>
 
-            {/* Bank Audit Note */}
             <div className="text-[10px] font-mono text-stone-500 pt-1 flex justify-between">
               <span>Federal Reserve Bank of New York (Fedwire)</span>
               <span>Sequence: 004182-NY-26</span>
@@ -306,8 +297,130 @@ export function BoundingBoxViewer({
           </div>
         )}
 
+        {/* ======================================================== */}
+        {/* DOCUMENT 4: MESSY EBITDA COMPLIANCE CERTIFICATE (NEW) */}
+        {/* ======================================================== */}
+        {activeDoc === "compliance" && (
+          <div className="space-y-4 animate-in fade-in duration-200">
+            {/* Header with Certified Stamp */}
+            <div className="flex justify-between items-start border-b border-stone-300 pb-3">
+              <div>
+                <h2 className="text-lg font-extrabold tracking-tight text-stone-900 font-serif">
+                  OFFICER&apos;S COMPLIANCE CERTIFICATE
+                </h2>
+                <p className="text-[10px] text-stone-500 font-mono mt-0.5">
+                  EXHIBIT C • RE: $65,000,000 SENIOR SECURED CREDIT FACILITY
+                </p>
+              </div>
+              <div className={`border-2 text-[10px] font-mono font-extrabold uppercase px-2 py-1 rounded tracking-widest rotate-[-2deg] opacity-85 shadow-sm ${
+                isCovenantBreached && status === "complete"
+                  ? "border-red-700 text-red-700 bg-red-50"
+                  : "border-indigo-800 text-indigo-800"
+              }`}>
+                {isCovenantBreached && status === "complete" ? "COVENANT DEFAULT" : "EXECUTED BY CFO"}
+              </div>
+            </div>
+
+            {/* Tricky Legal Clause Excerpt */}
+            <div className="p-3 bg-stone-100 rounded border border-stone-300 text-[11px] text-stone-700 leading-relaxed font-serif">
+              <span className="font-bold text-stone-900 block font-sans text-[10px] uppercase mb-1">
+                Section 8.4(b) Covenant Calculation Rider:
+              </span>
+              &quot;Pursuant to Section 8.4(b)(ii) of the Credit Agreement, &apos;Consolidated Adjusted EBITDA&apos; includes GAAP Net Income plus Interest, Cash Taxes, D&amp;A, and permitted non-recurring restructuring charges, <strong>provided that pro-forma cost synergies shall not exceed 15.0% of LTM Operating EBITDA</strong>. Fixed Charge Coverage Ratio (&apos;FCCR&apos;) must equal or exceed <strong>1.15x</strong>.&quot;
+            </div>
+
+            {/* Itemized Tricky EBITDA Add-Back Table */}
+            <div className="border border-stone-300 rounded overflow-hidden text-xs">
+              <table className="w-full text-left">
+                <thead className="bg-stone-100 text-stone-600 text-[10px] uppercase border-b border-stone-300">
+                  <tr>
+                    <th className="p-2">Consolidated EBITDA Component</th>
+                    <th className="p-2 text-right">Schedule Reference</th>
+                    <th className="p-2 text-right">Certified Amount</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-stone-200 text-stone-800 text-[11px]">
+                  <tr>
+                    <td className="p-2">GAAP Operating Income</td>
+                    <td className="p-2 text-right font-mono text-[10px] text-stone-500">10-Q Line 4</td>
+                    <td className="p-2 text-right font-mono">$820,000.00</td>
+                  </tr>
+                  <tr>
+                    <td className="p-2">(+) Depreciation &amp; Amortization Add-Back</td>
+                    <td className="p-2 text-right font-mono text-[10px] text-stone-500">Schedule 8.4(a)</td>
+                    <td className="p-2 text-right font-mono">+$240,000.00</td>
+                  </tr>
+                  <tr>
+                    <td className="p-2">
+                      <span className="block">(+) Restructuring &amp; Plant Severance Charges</span>
+                      <span className="text-[10px] text-stone-500">Subject to 10% EBITDA Cap</span>
+                    </td>
+                    <td className="p-2 text-right font-mono text-[10px] text-stone-500">Audit Footnote 12</td>
+                    <td className="p-2 text-right font-mono">+$115,000.00</td>
+                  </tr>
+                  <tr className="bg-stone-50">
+                    <td className="p-2">
+                      <span className="block font-medium">(+) Pro-Forma Synergies (Capped at 15%)</span>
+                      <span className="text-[10px] text-amber-700 italic">Disallowed excess deduction applied</span>
+                    </td>
+                    <td className="p-2 text-right font-mono text-[10px] text-stone-500">Rider 8.4(b)</td>
+                    <td className="p-2 text-right font-mono font-medium">+$145,000.00</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            {/* Hand-Annotated CFO Audit Qualification Note */}
+            <div className="p-2.5 bg-blue-50/70 rounded border border-blue-200 text-[11px]">
+              <span className="text-[10px] font-bold uppercase text-blue-900 block font-mono">
+                CFO Legal Attestation:
+              </span>
+              <p className="font-serif italic text-blue-950 mt-0.5">
+                &quot;I hereby certify that the net Borrower EBITDA for the quarterly period ending Sept 30, 2026 is mathematically resolved to <strong>{formatMoney(ebitda)}</strong>, against cash debt service obligations of <strong>{formatMoney(interestExpense)}</strong> and current maturities of <strong>{formatMoney(currentMaturities)}</strong>.&quot;
+              </p>
+            </div>
+
+            {/* Certified EBITDA Total with Bounding Box Anchor */}
+            <div className="p-3 bg-stone-100 border border-stone-300 rounded flex justify-between items-center relative">
+              <div>
+                <span className="text-xs font-bold text-stone-800 block">
+                  NET CONSOLIDATED BORROWER EBITDA:
+                </span>
+                <span className="text-[10px] font-mono text-stone-500">
+                  Fixed Charge Coverage: <strong className={isCovenantBreached ? "text-red-700" : "text-emerald-700"}>{fccr.toFixed(2)}x</strong> (Min: 1.15x)
+                </span>
+              </div>
+
+              <div className="relative inline-flex items-center">
+                <span
+                  className={`font-mono text-base transition-colors duration-200 ${
+                    isCovenantBreached
+                      ? "text-red-700 font-extrabold"
+                      : "text-stone-900 font-extrabold"
+                  }`}
+                >
+                  {formatMoney(ebitda)}
+                </span>
+
+                {/* Covenant Breach Bounding Box Highlight */}
+                {isCovenantBreached && status === "complete" && (
+                  <div
+                    className="absolute -inset-2 border-2 border-red-500 bg-red-500/20 rounded pointer-events-none animate-pulse"
+                    title="Grounded coordinate anchor: Covenant breach detected"
+                  >
+                    <span className="absolute -top-3.5 -right-1 bg-red-700 text-white text-[8px] font-mono font-bold px-1.5 rounded uppercase tracking-wider shadow">
+                      Breach
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+          </div>
+        )}
+
         {/* BOTTOM AUDIT CERTIFICATION FOOTNOTE */}
-        <div className="absolute bottom-5 left-6 right-6 pt-3 border-t border-stone-200 flex justify-between items-center text-[9px] text-stone-400 font-mono">
+        <div className="absolute bottom-4 left-6 right-6 pt-3 border-t border-stone-200 flex justify-between items-center text-[9px] text-stone-400 font-mono">
           <span>OCR Hash: sha256-4c9f18a02d...</span>
           <span className="text-emerald-700 font-bold">✓ Pixel Anchor Grounded (Tesla T4)</span>
         </div>
