@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { BoundingBoxViewer, ActiveDocType } from "@/components/pdf/BoundingBoxViewer";
 import { RecruiterDrawer } from "@/components/dashboard/RecruiterDrawer";
+import { PortfolioScaleModal } from "@/components/dashboard/PortfolioScaleModal";
 import {
   PlayCircle,
   Loader2,
@@ -18,7 +19,8 @@ import {
   ShieldCheck,
   FileText,
   Info,
-  Smartphone
+  Smartphone,
+  Database
 } from "lucide-react";
 
 type ScenarioType = "tampering" | "clean" | "covenant_breach";
@@ -81,6 +83,7 @@ export default function WorkspacePage() {
   const [activeDoc, setActiveDoc] = useState<ActiveDocType>("payment");
   const [showEditor, setShowEditor] = useState<boolean>(false);
   const [showPurpose, setShowPurpose] = useState<boolean>(true);
+  const [showScaleModal, setShowScaleModal] = useState<boolean>(false);
   const [status, setStatus] = useState<"idle" | "analyzing" | "complete" | "error">("idle");
   const [auditResult, setAuditResult] = useState<any>(null);
 
@@ -161,7 +164,18 @@ export default function WorkspacePage() {
           </Badge>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5">
+          {/* Strategy 3 Modal Trigger Button */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowScaleModal(true)}
+            className="border-indigo-500/30 bg-indigo-950/20 hover:bg-indigo-900/40 text-indigo-300 text-xs h-8"
+          >
+            <Database className="w-3.5 h-3.5 mr-1.5 text-indigo-400" />
+            Enterprise Scale (1.2M Docs)
+          </Button>
+
           <Button
             variant="ghost"
             size="sm"
@@ -199,9 +213,32 @@ export default function WorkspacePage() {
         </div>
       </header>
 
-      {/* Purpose & Commercial Problem Banner (Solves Points 2, 3 & 10) */}
+      {/* STRATEGY 1: Enterprise Portfolio Telemetry Bar */}
+      <div className="bg-slate-900/90 border-b border-slate-800 px-6 py-2 flex items-center justify-between text-xs">
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span className="font-semibold text-slate-200">Portfolio Batch Engine:</span>
+            <span className="text-slate-400 font-mono">1,248,500 Docs Audited (Q3 2026)</span>
+          </div>
+          <span className="text-slate-700">|</span>
+          <div className="text-slate-400">
+            <span className="text-emerald-400 font-semibold font-mono">96.4%</span> Auto-Reconciled Clean
+          </div>
+          <span className="text-slate-700">|</span>
+          <div className="text-amber-400">
+            <span className="font-semibold font-mono">3.6%</span> Exception Triage Active
+          </div>
+        </div>
+
+        <Badge variant="outline" className="text-slate-400 border-slate-700 font-mono text-[10px]">
+          ACTIVE QUEUE: FACILITY #4,182 (COBALT EQUIPMENT)
+        </Badge>
+      </div>
+
+      {/* Purpose & Commercial Problem Banner */}
       {showPurpose && (
-        <div className="bg-gradient-to-r from-slate-900 via-indigo-950/40 to-slate-900 border-b border-slate-800 px-6 py-3 flex items-center justify-between text-xs animate-in slide-in-from-top-1">
+        <div className="bg-gradient-to-r from-slate-900 via-indigo-950/40 to-slate-900 border-b border-slate-800 px-6 py-2.5 flex items-center justify-between text-xs animate-in slide-in-from-top-1">
           <div className="max-w-4xl space-y-1">
             <div className="flex items-center gap-2">
               <span className="font-semibold text-indigo-300">The Problem Solved:</span>
@@ -210,7 +247,7 @@ export default function WorkspacePage() {
               </span>
             </div>
             <p className="text-[11px] text-slate-400">
-              <strong>How It Works:</strong> An agentic LangGraph swarm performs a 3-way reconciliation in 2 seconds. Mathematical checks are executed in deterministic code (0% hallucination), while a fine-tuned GGUF model synthesizes findings with exact bounding-box evidence.
+              <strong>How It Works:</strong> An agentic LangGraph swarm performs 3-way reconciliation in 2 seconds. Mathematical checks are executed in deterministic code (0% hallucination), while a fine-tuned GGUF model synthesizes findings with exact bounding-box evidence.
             </p>
           </div>
           <button
@@ -223,10 +260,10 @@ export default function WorkspacePage() {
       )}
 
       {/* Recruiter Scenario Guidance Bar */}
-      <div className="bg-slate-900/90 border-b border-slate-800 px-6 py-2 flex items-center gap-4 text-xs">
+      <div className="bg-slate-900/60 border-b border-slate-800 px-6 py-2 flex items-center gap-4 text-xs">
         <div className="flex items-center gap-2 text-slate-400 shrink-0">
           <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-          <span className="font-medium text-slate-300">Recruiter Test Scenarios:</span>
+          <span className="font-medium text-slate-300">Test Scenarios:</span>
         </div>
         <div className="flex items-center gap-2">
           {(["tampering", "clean", "covenant_breach"] as ScenarioType[]).map((type) => (
@@ -303,17 +340,17 @@ export default function WorkspacePage() {
       {/* Main 3-Column Workspace */}
       <ResizablePanelGroup className="flex-1 flex flex-row">
 
-        {/* Panel 1: Interactive Document Tree (Fixes Point 11: Clickable Docs) */}
+        {/* Panel 1: Document Tree */}
         <ResizablePanel defaultSize={20} minSize={15}>
           <div className="p-4 space-y-3 h-full overflow-y-auto border-r border-slate-800">
             <div className="flex items-center justify-between">
               <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-                Ingested Documents
+                Exception Triaged
               </h3>
               <span className="text-[10px] font-mono text-indigo-400">Click to View</span>
             </div>
 
-            {/* PO Document Item */}
+            {/* PO Item */}
             <div
               onClick={() => setActiveDoc("po")}
               className={`p-3 rounded-lg border text-xs flex justify-between items-center cursor-pointer transition-all ${
@@ -333,7 +370,7 @@ export default function WorkspacePage() {
               </Badge>
             </div>
 
-            {/* Invoice Document Item */}
+            {/* Invoice Item */}
             <div
               onClick={() => setActiveDoc("invoice")}
               className={`p-3 rounded-lg border text-xs flex justify-between items-center cursor-pointer transition-all ${
@@ -353,7 +390,7 @@ export default function WorkspacePage() {
               </Badge>
             </div>
 
-            {/* Bank Payment Document Item */}
+            {/* Bank Payment Item */}
             <div
               onClick={() => setActiveDoc("payment")}
               className={`p-3 rounded-lg border text-xs flex justify-between items-center cursor-pointer transition-all ${
@@ -571,6 +608,13 @@ export default function WorkspacePage() {
           />
         </ResizablePanel>
       </ResizablePanelGroup>
+
+      {/* STRATEGY 3: Enterprise Portfolio Scale Modal */}
+      <PortfolioScaleModal
+        isOpen={showScaleModal}
+        onClose={() => setShowScaleModal(false)}
+      />
+
     </div>
   );
 }
