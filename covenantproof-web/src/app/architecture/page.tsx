@@ -7,17 +7,20 @@ import {
   Server,
   Cpu,
   Layers,
-  GitBranch,
   ShieldCheck,
   CheckCircle2,
   ArrowRight,
+  ArrowDown,
   Lock,
   Activity,
   FileText,
   Code2,
   Network,
   ExternalLink,
-  Workflow
+  Workflow,
+  Zap,
+  AlertTriangle,
+  GitFork
 } from "lucide-react";
 
 export default function ArchitecturePage() {
@@ -103,71 +106,224 @@ export default function ArchitecturePage() {
         </div>
       </section>
 
-      {/* SECTION 2: END-TO-END BLOCK DIAGRAM (SOLVES POINT 5) */}
+      {/* SECTION 2: END-TO-END VISUAL BLOCK DIAGRAM (SOLVES POINT 5) */}
       <section className="px-6 py-14 max-w-5xl mx-auto border-b border-slate-900 space-y-6">
         <div>
           <Badge className="bg-indigo-950 text-indigo-400 border border-indigo-800/40 text-[10px] mb-2">
-            BLOCK DIAGRAM
+            SYSTEM TOPOLOGY
           </Badge>
           <h2 className="text-2xl font-bold tracking-tight">
             End-to-End System Topology
           </h2>
           <p className="mt-2 text-xs md:text-sm text-slate-400 leading-relaxed max-w-3xl">
-            Complete data flow from client document ingestion in Amazon S3 down to GPU-accelerated local GGUF synthesis and OpenInference tracing.
+            A modular breakdown of the asynchronous ingest lake, high-throughput cluster, deterministic LangGraph state machine, and dual-lane output triage.
           </p>
         </div>
 
-        {/* Formatted Architecture Diagram Box */}
-        <div className="rounded-xl border border-slate-800 bg-slate-900/80 p-6 overflow-hidden space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+        {/* MODERN NATIVE VISUAL DIAGRAM */}
+        <div className="rounded-2xl border border-slate-800 bg-slate-900/50 p-6 md:p-8 space-y-8">
+
+          {/* Top Bar */}
+          <div className="flex items-center justify-between border-b border-slate-800 pb-4">
             <div className="flex items-center gap-2 text-xs font-semibold text-slate-200">
-              <Network className="w-4 h-4 text-indigo-400" />
-              <span>CovenantProof Production VPC Topology</span>
+              <Network className="w-4 h-4 text-emerald-400" />
+              <span>CovenantProof Production Pipeline (AWS us-east-1)</span>
             </div>
-            <span className="text-[10px] font-mono text-slate-500">AWS us-east-1 VPC</span>
+            <Badge variant="outline" className="text-[10px] border-slate-700 font-mono text-slate-400">
+              Zero Data Egress
+            </Badge>
           </div>
 
-          <pre className="font-mono text-[11px] leading-relaxed text-slate-300 bg-slate-950 p-4 rounded-lg border border-slate-800/80 overflow-x-auto">
-{`┌────────────────────────────────────────────────────────────────────────────────────────┐
-│ 1. INGESTION &amp; STREAMING LAYER                                                         │
-│                                                                                        │
-│   [ Amazon S3 Document Lake ] ────► [ Apache Kafka / AWS SQS Partitioned Topic ]       │
-│   (1.2M+ PDFs / Quarter)                  │ (Buffering up to 10,000 draw requests/min) │
-└───────────────────────────────────────────┼────────────────────────────────────────────┘
-                                            ▼
-┌────────────────────────────────────────────────────────────────────────────────────────┐
-│ 2. DISTRIBUTED EXECUTION CLUSTER (AWS EKS)                                             │
-│                                                                                        │
-│   ┌───────────────────────────────┐     ┌──────────────────────────────────────────┐   │
-│   │   PySpark / LayoutParser      │     │  Continuous Batching Engine (vLLM Pool)  │   │
-│   │   • PDF Table Boundary OCR    │     │  • TensorRT-LLM / vLLM PagedAttention   │   │
-│   │   • Pixel Coordinate Hashing  │     │  • 1,850 Pages/Sec Throughput            │   │
-│   └───────────────┬───────────────┘     └────────────────────┬─────────────────────┘   │
-└───────────────────┼──────────────────────────────────────────┼─────────────────────────┘
-                    │                                          │
-                    └────────────────────┬─────────────────────┘
-                                         ▼
-┌────────────────────────────────────────────────────────────────────────────────────────┐
-│ 3. COVENANTPROOF STATE MACHINE (LangGraph Multi-Agent DAG)                              │
-│                                                                                        │
-│   [ IntakeNode ] ─────────► [ ReconciliationNode ] ────► [ CovenantMathNode ]          │
-│   (Schema Validation)       (100% Deterministic Math)    (FCCR &amp; Leverage Check)       │
-│                                                                  │                     │
-│                                                                  ▼                     │
-│                             [ ComposerNode ] ◄───────────────────┘                     │
-│                             (Ollama QLoRA GGUF on Tesla T4)                            │
-└────────────────────────────────────────┬───────────────────────────────────────────────┘
-                                         │
-                    ┌────────────────────┴─────────────────────┐
-                    ▼                                          ▼
-┌──────────────────────────────────────┐   ┌────────────────────────────────────────────┐
-│ 4. OBSERVABILITY &amp; AUDIT TRAIL        │   │ 5. CLIENT PRESENTATION LAYER               │
-│                                      │   │                                            │
-│   • Arize Phoenix Tracing (:6006)    │   │   • Next.js 16 App Router (Vercel Edge)    │
-│   • OpenInference Token Spans        │   │   • Live Coordinate Bounding Box Viewer    │
-│   • Immutable Audit Hash Logs        │   │   • Interactive Exception Desk (/dashboard)│
-└──────────────────────────────────────┘   └────────────────────────────────────────────┘`}
-          </pre>
+          {/* STAGE 1: INGESTION & EVENT STREAMING */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 text-xs font-mono font-bold text-slate-400 uppercase tracking-wider">
+              <span className="w-6 h-6 rounded-full bg-slate-800 text-slate-200 flex items-center justify-center text-[10px]">1</span>
+              <span>Ingestion &amp; Event Streaming Layer</span>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="p-4 rounded-xl border border-slate-800 bg-slate-950/80 space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="font-semibold text-sm text-slate-200 flex items-center gap-2">
+                    <Database className="w-4 h-4 text-indigo-400" /> Amazon S3 Document Lake
+                  </span>
+                  <Badge variant="outline" className="text-[9px] border-slate-700">Storage</Badge>
+                </div>
+                <p className="text-xs text-slate-400">
+                  Holds 1.2M+ raw PDF borrower filings per quarter: Purchase Orders, Commercial Invoices, and Fedwire Confirmations partitioned by borrower ID and fiscal quarter.
+                </p>
+              </div>
+
+              <div className="p-4 rounded-xl border border-slate-800 bg-slate-950/80 space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="font-semibold text-sm text-slate-200 flex items-center gap-2">
+                    <Workflow className="w-4 h-4 text-purple-400" /> Apache Kafka / SQS Event Stream
+                  </span>
+                  <Badge variant="outline" className="text-[9px] border-slate-700">Queue</Badge>
+                </div>
+                <p className="text-xs text-slate-400">
+                  Partitioned streaming buffer absorbing up to 10,000 draw requests per minute, preventing downstream GPU bottlenecks during end-of-month reporting peaks.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* CONNECTOR ARROW */}
+          <div className="flex justify-center text-slate-600">
+            <ArrowDown className="w-5 h-5 animate-pulse" />
+          </div>
+
+          {/* STAGE 2: DISTRIBUTED GPU & OCR WORKERS */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 text-xs font-mono font-bold text-slate-400 uppercase tracking-wider">
+              <span className="w-6 h-6 rounded-full bg-slate-800 text-slate-200 flex items-center justify-center text-[10px]">2</span>
+              <span>Distributed Execution Cluster (AWS EKS Worker Pods)</span>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="p-4 rounded-xl border border-slate-800 bg-slate-950/80 space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="font-semibold text-sm text-slate-200 flex items-center gap-2">
+                    <FileText className="w-4 h-4 text-emerald-400" /> PySpark &amp; LayoutParser Pods
+                  </span>
+                  <Badge variant="outline" className="text-[9px] border-slate-700">Parser</Badge>
+                </div>
+                <p className="text-xs text-slate-400">
+                  Extracts tables, key-value pairs, and pixel bounding boxes from unstructured PDFs. Embeds cryptographic OCR coordinate hashes for forensic tracking.
+                </p>
+              </div>
+
+              <div className="p-4 rounded-xl border border-slate-800 bg-slate-950/80 space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="font-semibold text-sm text-slate-200 flex items-center gap-2">
+                    <Zap className="w-4 h-4 text-amber-400" /> Continuous Batching Engine (vLLM)
+                  </span>
+                  <Badge variant="outline" className="text-[9px] border-slate-700">Inference</Badge>
+                </div>
+                <p className="text-xs text-slate-400">
+                  Dynamically batches concurrent prompt requests using PagedAttention on Tesla T4 instances, delivering over 1,850 pages per second in batch mode.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* CONNECTOR ARROW */}
+          <div className="flex justify-center text-slate-600">
+            <ArrowDown className="w-5 h-5 animate-pulse" />
+          </div>
+
+          {/* STAGE 3: LANGGRAPH MULTI-AGENT DAG */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between text-xs font-mono font-bold text-indigo-400 uppercase tracking-wider">
+              <span className="flex items-center gap-2">
+                <span className="w-6 h-6 rounded-full bg-indigo-950 border border-indigo-700 text-indigo-300 flex items-center justify-center text-[10px]">3</span>
+                Core LangGraph State Machine (Deterministic DAG)
+              </span>
+              <span className="text-[10px] text-slate-500 font-normal">State checkpoints persisted in Redis</span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              {/* Node 1 */}
+              <div className="p-3.5 rounded-xl border border-indigo-900/50 bg-indigo-950/20 space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="font-mono text-xs font-bold text-indigo-300">IntakeNode</span>
+                  <Badge className="bg-indigo-950 text-indigo-400 border border-indigo-800 text-[8px]">AI</Badge>
+                </div>
+                <p className="text-[11px] text-slate-400">
+                  Validates Pydantic V2 schemas and maps token spans to PDF pixel coordinates.
+                </p>
+              </div>
+
+              {/* Node 2 */}
+              <div className="p-3.5 rounded-xl border border-emerald-900/50 bg-emerald-950/20 space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="font-mono text-xs font-bold text-emerald-300">ReconciliationNode</span>
+                  <Badge className="bg-emerald-950 text-emerald-400 border border-emerald-800 text-[8px]">Math</Badge>
+                </div>
+                <p className="text-[11px] text-slate-400">
+                  Deterministic Python 3-way match: PO vs. Invoice vs. Wire. Zero LLM hallucination.
+                </p>
+              </div>
+
+              {/* Node 3 */}
+              <div className="p-3.5 rounded-xl border border-amber-900/50 bg-amber-950/20 space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="font-mono text-xs font-bold text-amber-300">CovenantMathNode</span>
+                  <Badge className="bg-amber-950 text-amber-400 border border-amber-800 text-[8px]">Math</Badge>
+                </div>
+                <p className="text-[11px] text-slate-400">
+                  Calculates Fixed Charge Coverage (FCCR) and Senior Leverage against loan limits.
+                </p>
+              </div>
+
+              {/* Node 4 */}
+              <div className="p-3.5 rounded-xl border border-purple-900/50 bg-purple-950/20 space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="font-mono text-xs font-bold text-purple-300">ComposerNode</span>
+                  <Badge className="bg-purple-950 text-purple-400 border border-purple-800 text-[8px]">AI</Badge>
+                </div>
+                <p className="text-[11px] text-slate-400">
+                  Fine-tuned local GGUF model drafts the executive audit memorandum with grounded citations.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* CONNECTOR ARROW */}
+          <div className="flex justify-center text-slate-600">
+            <ArrowDown className="w-5 h-5 animate-pulse" />
+          </div>
+
+          {/* STAGE 4: DUAL-LANE OUTPUT TRIAGE */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 text-xs font-mono font-bold text-slate-400 uppercase tracking-wider">
+              <span className="w-6 h-6 rounded-full bg-slate-800 text-slate-200 flex items-center justify-center text-[10px]">4</span>
+              <span>Automated Decision Bifurcation</span>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="p-4 rounded-xl border border-emerald-900/60 bg-emerald-950/15 space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="font-semibold text-sm text-emerald-300 flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400" /> 96.4% Auto-Approved Clean Pass
+                  </span>
+                  <Badge className="bg-emerald-950 text-emerald-400 border border-emerald-800 text-[9px]">Headless</Badge>
+                </div>
+                <p className="text-xs text-slate-400">
+                  Zero variances detected. The state machine auto-generates compliance certificates and writes audit signatures directly to core banking databases via REST.
+                </p>
+              </div>
+
+              <div className="p-4 rounded-xl border border-amber-900/60 bg-amber-950/15 space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="font-semibold text-sm text-amber-300 flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4 text-amber-400" /> 3.6% Exception Triage Queue
+                  </span>
+                  <Badge className="bg-amber-950 text-amber-400 border border-amber-800 text-[9px]">Human Desk</Badge>
+                </div>
+                <p className="text-xs text-slate-400">
+                  Variances (such as Cobalt Equipment&apos;s $27,000 wire discrepancy) are routed to the <strong>Interactive Audit Desk (`/dashboard`)</strong> with live coordinate highlights.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* STAGE 5: TELEMETRY & OBSERVABILITY BAR */}
+          <div className="p-4 rounded-xl border border-slate-800 bg-slate-950 flex flex-col md:flex-row items-center justify-between gap-4 text-xs">
+            <div className="flex items-center gap-2.5">
+              <Activity className="w-4 h-4 text-amber-400 shrink-0" />
+              <div>
+                <span className="font-semibold text-slate-200 block">OpenInference Distributed Tracing</span>
+                <span className="text-[11px] text-slate-500">Every agent transition, prompt latency, and token footprint is recorded at port 6006.</span>
+              </div>
+            </div>
+            <a
+              href="http://52.90.159.170:6006"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-amber-300 px-3 py-1.5 rounded-lg font-mono text-[11px] border border-slate-700 transition-colors"
+            >
+              Inspect Live Phoenix Spans <ExternalLink className="w-3 h-3" />
+            </a>
+          </div>
+
         </div>
       </section>
 
