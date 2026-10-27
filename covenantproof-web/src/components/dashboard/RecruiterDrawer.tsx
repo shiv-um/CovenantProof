@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -16,7 +17,6 @@ import {
   FileCode2,
   Scale,
   Gauge,
-  Lock,
   Database
 } from "lucide-react";
 
@@ -25,9 +25,16 @@ type TabKey = "business" | "swarm" | "model" | "testing";
 export function RecruiterDrawer() {
   const [isOpen, setIsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<TabKey>("business");
+  const [mounted, setMounted] = useState(false);
+
+  // Ensure DOM is available before rendering portal (Next.js SSR safety)
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   return (
     <>
+      {/* Trigger Button inside Header */}
       <Button
         onClick={() => setIsOpen(true)}
         className="bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 text-xs h-8 px-3 font-medium transition-all"
@@ -36,11 +43,12 @@ export function RecruiterDrawer() {
         Recruiter & Technical Proof Mode
       </Button>
 
-      {isOpen && (
-        <div className="fixed inset-0 z-50 flex justify-end bg-black/70 backdrop-blur-sm animate-in fade-in duration-200">
+      {/* Slide-Over Overlay Teleported to document.body */}
+      {isOpen && mounted && createPortal(
+        <div className="fixed inset-0 z-[9999] flex justify-end bg-black/75 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="w-full max-w-2xl bg-slate-950 border-l border-slate-800 h-full flex flex-col shadow-2xl animate-in slide-in-from-right duration-300 text-slate-100">
 
-            {/* Header */}
+            {/* Drawer Header */}
             <div className="p-6 border-b border-slate-800 flex items-start justify-between bg-slate-900/60">
               <div>
                 <div className="flex items-center gap-2 mb-1">
@@ -158,8 +166,6 @@ export function RecruiterDrawer() {
               {/* TAB 2: AGENT SWARM TOPOLOGY & MILLIONS SCALE */}
               {activeTab === "swarm" && (
                 <div className="space-y-6 animate-in fade-in-50">
-
-                  {/* Million Document Batch Ingestion Topology */}
                   <div className="bg-slate-900 p-4 rounded-lg border border-slate-800 space-y-3">
                     <div className="flex items-center justify-between">
                       <span className="font-semibold text-slate-200 text-xs flex items-center gap-2">
@@ -193,7 +199,6 @@ export function RecruiterDrawer() {
                     </div>
                   </div>
 
-                  {/* Four Architectural Pillars */}
                   <div className="space-y-3">
                     <div className="bg-slate-900 p-3.5 rounded-lg border border-slate-800 space-y-1">
                       <span className="font-semibold text-indigo-300 font-mono text-[11px]">1. Asynchronous Ingestion &amp; Event Decoupling</span>
@@ -325,7 +330,8 @@ export function RecruiterDrawer() {
             </div>
 
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </>
   );
