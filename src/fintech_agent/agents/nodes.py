@@ -12,6 +12,10 @@ from src.fintech_agent.reconciliation.matching import match_three_way
 from synthetic_data.generators.docling_parser import parse_pdf_document
 from synthetic_data.generators.spatial_extractor import extract_spatial_spans
 
+from src.fintech_agent.services.document_router import DocumentStructuralRouter
+
+_doc_router = DocumentStructuralRouter(page_window_padding=2)
+
 # Singleton Bedrock reasoning client (auto-instrumented for Arize Phoenix traces)
 _bedrock_llm = BedrockAgentLLM()
 
@@ -28,8 +32,8 @@ def _compute_sha256(file_path: Path) -> str:
 def ingestion_node(state: AgentState) -> dict[str, Any]:
     """
     Ingestion Parser Node:
-    Resolves document artifacts, calculates immutable SHA-256 byte hashes,
-    parses layout hierarchies via Docling, and maps spatial evidence spans.
+    Resolves document artifacts, applies Stage 0 structural routing for 1,000+ page agreements,
+    computes SHA-256 byte hashes, and extracts spatial evidence spans.
     """
     docs = state.get("input_documents", [])
     output_dir = Path("synthetic_data/output")
@@ -49,11 +53,31 @@ def ingestion_node(state: AgentState) -> dict[str, Any]:
             document_hashes.append(doc_hash)
             continue
 
-        # 1. Cryptographic Hash Pinning
         doc_hash = _compute_sha256(target_path)
         document_hashes.append(doc_hash)
 
-        # 2. Structural Markdown Parsing via Docling
+        # Stage 0: 1,000-Page Document Routing Check
+        doc_type = doc.get("document_type", "").lower()
+        if target_path.suffix.lower() == ".pdf" and doc_type in ("credit_agreement", "loan_agreement", "covenant_certificate"):
+            try:
+                routed = _doc_router.route_document(target_path)
+                if routed.total_original_pages > 20:
+                    warnings.append(
+                        f"Stage 0 Router Activated: Pruned {routed.total_original_pages} pages down to "
+                        f"{len(routed.selected_page_indices)} pages ({routed.pruning_ratio}% reduction in {routed.routing_latency_ms}ms)."
+                    )
+                    parsed_pages.append({
+                        "document_id": doc.get("document_id", f"doc-{idx}"),
+                        "document_type": doc.get("document_type", "UNKNOWN"),
+                        "file_name": target_path.name,
+                        "sha256": doc_hash,
+                        "markdown": routed.extracted_text,
+                    })
+                    continue
+            except Exception as e:
+                warnings.append(f"Router fallback failed on {target_path.name}: {str(e)}")
+
+        # Standard processing for short/transactional documents (Invoices, Wires, POs)
         try:
             parsed = parse_pdf_document(target_path)
             parsed_pages.append({
@@ -66,7 +90,6 @@ def ingestion_node(state: AgentState) -> dict[str, Any]:
         except Exception as e:
             warnings.append(f"Docling parse error on {target_path.name}: {str(e)}")
 
-        # 3. Spatial Bounding Box Extraction
         try:
             spans = extract_spatial_spans(target_path)
             for s in spans:
