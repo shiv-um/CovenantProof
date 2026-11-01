@@ -50,6 +50,8 @@ services:
       - REDIS_URL=redis://redis:6379/0
       - POSTGRES_URI=postgresql://postgres:postgrespassword@postgres:5432/covenantproof?sslmode=disable
       - AWS_DEFAULT_REGION=us-east-1
+      # Phoenix telemetry collector routing inside the docker network
+      - PHOENIX_COLLECTOR_ENDPOINT=http://phoenix:6006/v1/traces
       # Route LangChain inside Docker to talk to the Ollama model running natively on the host OS
       - OLLAMA_BASE_URL=http://host.docker.internal:11434
       - MODEL_NAME=covenant-auditor
@@ -62,6 +64,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      phoenix:
+        condition: service_started
     restart: unless-stopped
 
 volumes:
