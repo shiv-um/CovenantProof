@@ -335,10 +335,11 @@ def composer_node(state: AgentState) -> dict[str, Any]:
     Report Composer Node:
     Synthesizes the executive credit audit memo citing evidence coordinates
     using the locally fine-tuned GGUF covenant-auditor model via Ollama.
+    Falls back gracefully to direct HTTP or deterministic summary if dependencies are absent.
     """
     import os
-    from langchain_community.chat_models import ChatOllama
-    from langchain_core.messages import SystemMessage, HumanMessage
+    import json
+    import urllib.request
 
     findings = state.get("findings", [])
     calculations = state.get("calculations", [])
@@ -357,32 +358,70 @@ def composer_node(state: AgentState) -> dict[str, Any]:
             "verification_status": "verified",
         })
 
-    # Route inference to the local edge model with graceful fallback
     ollama_url = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
     model_name = os.getenv("MODEL_NAME", "covenant-auditor")
-
     memo_summary = ""
+
     try:
-        llm = ChatOllama(
-            base_url=ollama_url,
-            model=model_name,
-            temperature=0.3,
-            timeout=5.0,
-        )
-        messages = [
-            SystemMessage(
-                content="You are the CovenantProof Chief Credit Reviewer. Synthesize a concise, formal credit audit memo summarizing the findings and calculations. Reference evidence-grounded facts and do not make automated credit decisions."
-            ),
-            HumanMessage(content=f"Findings:\n{findings}\nCalculations:\n{calculations}"),
-        ]
-        response = llm.invoke(messages)
-        memo_summary = response.content
+        # 1. Attempt LangChain chat invocation if package is available
+        try:
+            try:
+                from langchain_ollama import ChatOllama
+            except (ImportError, ModuleNotFoundError):
+                from langchain_community.chat_models import ChatOllama
+            from langchain_core.messages import SystemMessage, HumanMessage
+
+            llm = ChatOllama(
+                base_url=ollama_url,
+                model=model_name,
+                temperature=0.3,
+                timeout=5.0,
+            )
+            messages = [
+                SystemMessage(
+                    content="You are the CovenantProof Chief Credit Reviewer. Synthesize a concise, formal credit audit memo summarizing the findings and calculations. Reference evidence-grounded facts and do not make automated credit decisions."
+                ),
+                HumanMessage(content=f"Findings:\n{findings}\nCalculations:\n{calculations}"),
+            ]
+            response = llm.invoke(messages)
+            memo_summary = response.content
+
+        except (ImportError, ModuleNotFoundError):
+            # 2. Native HTTP fallback to Ollama API without external library dependency
+            payload = json.dumps({
+                "model": model_name,
+                "messages": [
+                    {
+                        "role": "system",
+                        "content": "You are the CovenantProof Chief Credit Reviewer. Synthesize a concise, formal credit audit memo summarizing the findings and calculations. Reference evidence-grounded facts and do not make automated credit decisions."
+                    },
+                    {
+                        "role": "user",
+                        "content": f"Findings:\n{findings}\nCalculations:\n{calculations}"
+                    }
+                ],
+                "stream": False,
+                "options": {"temperature": 0.3}
+            }).encode("utf-8")
+
+            req = urllib.request.Request(
+                f"{ollama_url}/api/chat",
+                data=payload,
+                headers={"Content-Type": "application/json"},
+                method="POST"
+            )
+            with urllib.request.urlopen(req, timeout=5.0) as resp:
+                data = json.loads(resp.read().decode("utf-8"))
+                memo_summary = data.get("message", {}).get("content", "")
+
     except Exception as exc:
+        # 3. Deterministic summary fallback if edge LLM is offline
+        ratio_val = calculations[0].get("output") if calculations else "N/A"
         memo_summary = (
-            f"Automated Credit Audit Summary: Evaluated facility compliance. "
+            f"Automated Credit Audit Summary: Evaluated facility compliance across ingested instruments. "
             f"Findings identified: {len(findings)}. "
-            f"Coverage Ratio: {calculations[0]['output'] if calculations else 'N/A'}. "
-            f"(Deterministic fallback: Local Ollama edge service unavailable: {str(exc)})"
+            f"Coverage Ratio: {ratio_val}. "
+            f"(Deterministic fallback: Local Ollama service notice: {str(exc)})"
         )
 
     return {
