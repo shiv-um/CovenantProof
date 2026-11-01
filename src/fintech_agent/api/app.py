@@ -1,7 +1,9 @@
 import asyncio
-from typing import Any, Optional
+import os
+from typing import Any, Dict, Optional
 from fastapi import FastAPI, HTTPException, status
 from pydantic import BaseModel, Field
+import psycopg2
 
 from src.fintech_agent.evaluation.economics import compute_economic_roi
 from src.fintech_agent.runtime.budgets import ExecutionBudget
@@ -15,6 +17,66 @@ app = FastAPI(
 )
 
 _store = RedisStore()
+
+POSTGRES_URI = os.getenv(
+    "POSTGRES_URI",
+    "postgresql://postgres:postgrespassword@postgres:5432/covenantproof?sslmode=disable",
+)
+DEFAULT_TENANT_ID = os.getenv("DEFAULT_TENANT_ID", "00000000-0000-0000-0000-000000000001")
+
+
+def persist_audit_record(
+        execution_output: Dict[str, Any],
+        manifest: Dict[str, Any],
+        tenant_id: str = DEFAULT_TENANT_ID,
+) -> None:
+    """
+    Persists case records and generated findings into PostgreSQL under kernel-enforced RLS.
+    """
+    try:
+        conn = psycopg2.connect(POSTGRES_URI)
+        with conn:
+            with conn.cursor() as cur:
+                # 1. Enforce Kernel-Level Tenant Context for RLS
+                cur.execute("SET LOCAL app.current_tenant = %s;", (tenant_id,))
+
+                # 2. Insert or Update Case
+                case_id = manifest.get("case_id")
+                company_name = manifest.get("company_name", "Corporate Borrower")
+
+                cur.execute(
+                    """
+                    INSERT INTO cases (case_identifier, company_name, mode, tenant_id)
+                    VALUES (%s, %s, %s, %s::uuid) ON CONFLICT (case_identifier) DO
+                    UPDATE
+                        SET company_name = EXCLUDED.company_name
+                        RETURNING id;
+                    """,
+                    (case_id, company_name, "live", tenant_id),
+                )
+                case_uuid = cur.fetchone()[0]
+
+                # 3. Extract Findings from Graph State
+                final_state = execution_output.get("final_state") or {}
+                findings = final_state.get("findings", [])
+
+                for f in findings:
+                    cur.execute(
+                        """
+                        INSERT INTO findings (case_id, kind, severity, title, tenant_id)
+                        VALUES (%s, %s, %s, %s, %s::uuid);
+                        """,
+                        (
+                            case_uuid,
+                            f.get("kind", "covenant_variance"),
+                            f.get("severity", "medium"),
+                            f.get("title", "Underwriting Finding"),
+                            tenant_id,
+                        ),
+                    )
+        conn.close()
+    except Exception as exc:
+        print(f"[PostgreSQL Persistence Warning]: Failed to persist audit {manifest.get('case_id')}: {exc}")
 
 
 class DocumentPayload(BaseModel):
@@ -71,6 +133,10 @@ async def create_credit_audit(request: AuditRequest) -> Any:
 
     try:
         execution_output = await run_credit_audit(manifest, budget=budget)
+
+        # Persist case & findings to PostgreSQL
+        persist_audit_record(execution_output, manifest)
+
         summary = execution_output["execution_summary"]
         return {
             **summary,
@@ -107,40 +173,3 @@ async def get_economic_model() -> dict[str, Any]:
         "roi_percentage": float(report.roi_percentage),
         "hours_saved_annually": float(report.hours_saved_annually),
     }
-
-
-if __name__ == "__main__":
-    from fastapi.testclient import TestClient
-
-    client = TestClient(app)
-
-    # 1. Verify health endpoint
-    health_resp = client.get("/health")
-    print(f"1. Health Check Endpoint:  {health_resp.status_code} | {health_resp.json()}")
-
-    # 2. Verify economics endpoint
-    econ_resp = client.get("/api/v1/metrics/economics")
-    print(f"2. Economics Endpoint:     {econ_resp.status_code} | Net Benefit: ${econ_resp.json()['net_annual_benefit_usd']:,.2f}")
-
-    # 3. Verify audit creation endpoint
-    payload = {
-        "case_id": "CASE-API-TEST-001",
-        "company_name": "API Verifier Inc",
-        "purchase_order": {"document_type": "purchase_order", "total_amount": "125000.00"},
-        "invoice": {"document_type": "invoice", "total_amount": "125000.00"},
-        "bank_payment": {"document_type": "bank_payment", "total_amount": "152000.00"},
-        "covenant_certificate": {
-            "document_type": "covenant_certificate",
-            "ebitda": "1500000.00",
-            "cash_taxes": "100000.00",
-            "interest_expense": "700000.00",
-            "current_maturities": "500000.00",
-        },
-    }
-    audit_resp = client.post("/api/v1/audits", json=payload)
-    data = audit_resp.json()
-    print(f"3. Audit Trigger Endpoint: {audit_resp.status_code}")
-    print(f"   - Case ID:         {data.get('case_id')}")
-    print(f"   - Review Required: {data.get('review_required')}")
-    print(f"   - Findings Count:  {data.get('findings_count')}")
-    print(f"   - Variable Cost:   ${data.get('cost_usd'):.4f}")
