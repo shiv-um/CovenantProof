@@ -7,7 +7,11 @@ from typing import Any
 
 from src.fintech_agent.agents.state import AgentState
 from src.fintech_agent.llm.bedrock_client import BedrockAgentLLM
-from src.fintech_agent.reconciliation.calculations import calculate_dscr
+from src.fintech_agent.reconciliation.calculations import (
+    FinancialMetrics,
+    evaluate_covenants,
+    calculate_dscr,
+)
 from src.fintech_agent.reconciliation.matching import match_three_way
 from synthetic_data.generators.docling_parser import parse_pdf_document
 from synthetic_data.generators.spatial_extractor import extract_spatial_spans

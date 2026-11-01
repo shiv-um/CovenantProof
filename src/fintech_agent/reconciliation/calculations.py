@@ -116,3 +116,28 @@ def evaluate_covenants(metrics: FinancialMetrics) -> AuditMathResult:
         three_way_mismatch_detected=three_way_mismatch,
         status_flags=status_flags,
     )
+
+
+def calculate_dscr(net_operating_income: Decimal, total_debt_service: Decimal) -> Decimal:
+    """
+    Backward-compatible standalone DSCR helper.
+    Enforces IEEE 754-free decimal arithmetic with ROUND_HALF_UP.
+    """
+    if total_debt_service <= Decimal("0.00"):
+        return Decimal("999.99")
+    return (net_operating_income / total_debt_service).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+
+
+def calculate_fccr(
+    ebitda: Decimal,
+    cash_taxes: Decimal,
+    unfunded_capex: Decimal,
+    total_debt_service: Decimal
+) -> Decimal:
+    """
+    Backward-compatible standalone FCCR helper.
+    """
+    if total_debt_service <= Decimal("0.00"):
+        return Decimal("999.99")
+    numerator = ebitda - cash_taxes - unfunded_capex
+    return (numerator / total_debt_service).quantize(Decimal("0.0001"), rounding=ROUND_HALF_UP)
