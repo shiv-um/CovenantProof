@@ -2,6 +2,7 @@ import asyncio
 import os
 from typing import Any, Dict, Optional
 from fastapi import FastAPI, HTTPException, status
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 import psycopg2
 
@@ -14,6 +15,19 @@ app = FastAPI(
     title="CovenantProof Commercial Underwriting Auditor API",
     version="1.0.0",
     description="Deterministic multi-agent credit covenant reconciliation and evidence grounding engine.",
+)
+
+# Enable CORS for the Next.js local dashboard and production origins
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "*"  # Allows access during development
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 _store = RedisStore()
