@@ -26,13 +26,10 @@ DEFAULT_TENANT_ID = os.getenv("DEFAULT_TENANT_ID", "00000000-0000-0000-0000-0000
 
 
 def persist_audit_record(
-        execution_output: Dict[str, Any],
-        manifest: Dict[str, Any],
-        tenant_id: str = DEFAULT_TENANT_ID,
+    execution_output: Dict[str, Any],
+    manifest: Dict[str, Any],
+    tenant_id: str = DEFAULT_TENANT_ID,
 ) -> None:
-    """
-    Persists case records and generated findings into PostgreSQL under kernel-enforced RLS.
-    """
     try:
         conn = psycopg2.connect(POSTGRES_URI)
         with conn:
@@ -40,43 +37,62 @@ def persist_audit_record(
                 # 1. Enforce Kernel-Level Tenant Context for RLS
                 cur.execute("SET LOCAL app.current_tenant = %s;", (tenant_id,))
 
-                # 2. Insert or Update Case
+                # 2. Upsert Case Record
                 case_id = manifest.get("case_id")
                 company_name = manifest.get("company_name", "Corporate Borrower")
 
                 cur.execute(
                     """
                     INSERT INTO cases (case_identifier, company_name, mode, tenant_id)
-                    VALUES (%s, %s, %s, %s::uuid) ON CONFLICT (case_identifier) DO
-                    UPDATE
-                        SET company_name = EXCLUDED.company_name
-                        RETURNING id;
+                    VALUES (%s, %s, %s, %s::uuid)
+                    ON CONFLICT (case_identifier) DO UPDATE 
+                    SET company_name = EXCLUDED.company_name
+                    RETURNING id;
                     """,
                     (case_id, company_name, "live", tenant_id),
                 )
                 case_uuid = cur.fetchone()[0]
 
-                # 3. Extract Findings from Graph State
+                # 3. Extract Findings from final_state
                 final_state = execution_output.get("final_state") or {}
-                findings = final_state.get("findings", [])
+                findings = final_state.get("findings") or []
 
                 for f in findings:
+                    raw_severity = str(f.get("severity", "medium")).lower()
+                    # Map 'critical' to 'high' to satisfy findings_severity_check
+                    allowed = {"info", "low", "medium", "high"}
+                    severity = raw_severity if raw_severity in allowed else "high"
+
+                    statement = f.get("statement") or f.get("title") or "Underwriting variance recorded."
+
                     cur.execute(
                         """
-                        INSERT INTO findings (case_id, kind, severity, title, tenant_id)
-                        VALUES (%s, %s, %s, %s, %s::uuid);
+                        INSERT INTO findings (
+                            case_id, 
+                            kind, 
+                            severity, 
+                            title, 
+                            statement, 
+                            status, 
+                            human_review_required, 
+                            tenant_id
+                        )
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s::uuid);
                         """,
                         (
                             case_uuid,
                             f.get("kind", "covenant_variance"),
-                            f.get("severity", "medium"),
+                            severity,
                             f.get("title", "Underwriting Finding"),
+                            statement,
+                            "open",
+                            f.get("human_review_required", True),
                             tenant_id,
                         ),
                     )
         conn.close()
     except Exception as exc:
-        print(f"[PostgreSQL Persistence Warning]: Failed to persist audit {manifest.get('case_id')}: {exc}")
+        print(f"[PostgreSQL Persistence Warning]: {exc}")
 
 
 class DocumentPayload(BaseModel):
