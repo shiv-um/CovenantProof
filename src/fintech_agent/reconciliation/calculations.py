@@ -5,13 +5,30 @@ Executes with zero LLM intervention: 100% deterministic symbolic node.
 """
 
 from decimal import Decimal, ROUND_HALF_UP
-from typing import Optional, List
-from pydantic import BaseModel, Field
+from typing import Any, Optional, List
+from pydantic import BaseModel, Field, field_validator
 
+
+def clean_decimal(val: Any) -> Decimal:
+    """
+    Sanitizes raw banking strings ($1,000.00, 15.0%) into clean IEEE 754-free Decimals.
+    """
+    if val is None or val == "":
+        return Decimal("0.00")
+    if isinstance(val, Decimal):
+        return val
+    if isinstance(val, (int, float)):
+        return Decimal(str(val))
+
+    s = str(val).strip().replace("$", "").replace(",", "")
+    if s.endswith("%"):
+        # Converts '15.0%' -> Decimal('0.1500')
+        return (Decimal(s[:-1].strip()) / Decimal("100")).quantize(Decimal("0.0001"), rounding=ROUND_HALF_UP)
+    return Decimal(s)
 
 class FinancialMetrics(BaseModel):
     reported_ebitda: Decimal
-    ltm_operating_ebitda: Decimal
+    ltm_operating_ebitda: Decimal = Decimal("0.00")
     reported_synergies: Decimal = Decimal("0.00")
     synergy_cap_pct: Decimal = Field(default=Decimal("0.1500"))
     cash_taxes: Decimal = Field(default=Decimal("0.00"))
@@ -22,6 +39,25 @@ class FinancialMetrics(BaseModel):
     purchase_order_total: Decimal = Field(default=Decimal("0.00"))
     invoice_total: Decimal = Field(default=Decimal("0.00"))
     bank_payment_total: Decimal = Field(default=Decimal("0.00"))
+
+    @field_validator(
+        "reported_ebitda",
+        "ltm_operating_ebitda",
+        "reported_synergies",
+        "synergy_cap_pct",
+        "cash_taxes",
+        "unfunded_capex",
+        "cash_interest",
+        "scheduled_principal",
+        "minimum_fccr_threshold",
+        "purchase_order_total",
+        "invoice_total",
+        "bank_payment_total",
+        mode="before",
+    )
+    @classmethod
+    def sanitize_inputs(cls, v: Any) -> Decimal:
+        return clean_decimal(v)
 
 
 class AuditMathResult(BaseModel):
