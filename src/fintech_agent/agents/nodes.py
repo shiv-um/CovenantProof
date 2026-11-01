@@ -237,6 +237,9 @@ def quantitative_node(state: AgentState) -> dict[str, Any]:
         (numerator / denominator) if denominator > Decimal("0.00") else Decimal("999.99")
     )
 
+    synergy_breached = getattr(eval_res, "synergy_cap_breach", getattr(eval_res, "synergy_cap_breached", False))
+    disallowed_amt = getattr(eval_res, "disallowed_synergies", getattr(eval_res, "excess_synergies", Decimal("0.00")))
+
     calculations.append({
         "id": "calc-dscr-001",
         "name": "Fixed Charge Coverage Ratio",
@@ -244,9 +247,9 @@ def quantitative_node(state: AgentState) -> dict[str, Any]:
         "output": float(dscr_ratio),
         "numerator": float(numerator),
         "denominator": float(denominator),
-        "fccr_breach": eval_res.fccr_breach,
-        "synergy_cap_breached": eval_res.synergy_cap_breached,
-        "disallowed_synergies": float(eval_res.disallowed_synergies),
+        "fccr_breach": getattr(eval_res, "fccr_breach", False),
+        "synergy_cap_breached": synergy_breached,
+        "disallowed_synergies": float(disallowed_amt),
     })
 
     return {
